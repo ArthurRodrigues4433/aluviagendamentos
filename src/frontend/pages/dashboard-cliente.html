@@ -1,0 +1,2857 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://public-frontend-cos.metadl.com/mgx/img/favicon.png" type="image/png">
+    <title>Dashboard Cliente - SaaS Agendamento</title>
+    <link rel="stylesheet" href="/frontend/assets/styles.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <div class="logo-section" style="display: flex; align-items: center;">
+                    <img id="salonLogo" src="" alt="" style="height: 40px; margin-right: 10px; display: none; max-width: 40px; object-fit: contain;">
+                    <div style="display: flex; flex-direction: column;">
+                        <a href="/dashboard-cliente.html" class="logo" id="salonName">Aluvi</a>
+                        <small id="salonSubtitle" style="color: #666; font-size: 0.75rem;">Carregando...</small>
+                    </div>
+                </div>
+                <ul class="nav-links">
+                    <li><span id="welcomeMessage">Carregando...</span></li>
+                    <li><a href="#" id="logoutBtn">Sair</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Mensagens de erro -->
+        <div id="errorMessages" style="display: none;"></div>
+
+        <!-- Navigation Tabs -->
+        <div class="card mb-3 fade-in">
+            <div class="d-flex gap-1" style="flex-wrap: wrap;">
+                <button class="btn btn-primary tab-btn active" data-tab="dashboard">Dashboard</button>
+                <button class="btn btn-outline tab-btn" data-tab="appointments">Meus Agendamentos</button>
+                <button class="btn btn-outline tab-btn" data-tab="book-service">Agendar Serviço</button>
+                <button class="btn btn-outline tab-btn" data-tab="history">Histórico</button>
+                <button class="btn btn-outline tab-btn" data-tab="loyalty">Pontos de Fidelidade</button>
+                <button class="btn btn-outline tab-btn" data-tab="profile">Meu Perfil</button>
+            </div>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboardTab" class="tab-content active">
+            <h2 class="mb-2">Visão Geral</h2>
+
+            <div id="clientStatsGrid" class="stats-grid">
+                <div class="loading">Carregando estatísticas...</div>
+            </div>
+
+            <!-- Próximos Agendamentos -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Próximos Agendamentos</h3>
+                </div>
+                <div id="upcomingAppointmentsDashboard">
+                    <div class="loading">Carregando agendamentos...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Appointments Tab -->
+        <div id="appointmentsTab" class="tab-content">
+            <div class="d-flex justify-between align-center mb-2">
+                <h2>Meus Agendamentos</h2>
+                <div class="d-flex gap-1 align-center">
+                    <small id="lastUpdateTime" class="text-muted" style="font-size: 0.75rem;"></small>
+                    <button class="btn btn-success" id="refreshAppointmentsBtn" title="Atualizar dados manualmente">
+                        🔄 Atualizar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Agendamentos Ativos -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h3 class="card-title">Próximos Agendamentos</h3>
+                </div>
+                <div id="upcomingAppointments">
+                    <div class="loading">Carregando agendamentos...</div>
+                </div>
+            </div>
+
+            <!-- Agendamentos Pendentes -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Agendamentos Pendentes</h3>
+                </div>
+                <div id="pendingAppointments">
+                    <div class="loading">Carregando agendamentos...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Book Service Tab -->
+        <div id="book-serviceTab" class="tab-content">
+            <div class="d-flex justify-between align-center mb-2">
+                <h1>Agendar Serviço</h1>
+                <button class="btn btn-outline" id="refreshBookingBtn">Atualizar Dados</button>
+            </div>
+
+            <div class="card">
+                <h2>Escolha seu profissional</h2>
+
+                <!-- Seleção de Profissional (Cards) -->
+                <div id="professionalsContainer" class="professionals-grid">
+                    <div class="loading">Carregando profissionais...</div>
+                </div>
+
+                <!-- Seleção de Serviço -->
+                <div id="servicesSection" style="display: none;">
+                    <h3>Serviços disponíveis</h3>
+                    <div class="form-group">
+                        <label class="form-label">Serviço Desejado</label>
+                        <select id="serviceSelect" class="form-control form-select">
+                            <option value="">Selecione um serviço...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Seleção de Data -->
+                <div id="dateSection" style="display: none;">
+                    <h3>Data do agendamento</h3>
+                    <div class="form-group">
+                        <label class="form-label">Data do Agendamento</label>
+                        <input type="date" id="appointmentDate" class="form-control" min="">
+                    </div>
+                </div>
+
+                <!-- Seleção de Horário -->
+                <div id="timeSection" style="display: none;">
+                    <h3>Horários disponíveis</h3>
+                    <div class="form-group">
+                        <label class="form-label">Horário Disponível</label>
+                        <select id="timeSelect" class="form-control form-select">
+                            <option value="">Selecione um horário...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Dados do Cliente (ocultos pois cliente já está logado) -->
+                <div id="clientData" style="display: none;">
+                    <!-- Cliente já logado, dados não necessários -->
+                </div>
+
+                <!-- Botão de Agendamento -->
+                <button id="scheduleBtn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;" disabled>
+                    Agendar Serviço
+                </button>
+            </div>
+
+            <!-- Mensagens -->
+            <div id="messages"></div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="historyTab" class="tab-content">
+            <h2 class="mb-2">Histórico de Serviços</h2>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Serviços Realizados</h3>
+                </div>
+                <div id="historicoList">
+                    <div class="loading">Carregando histórico...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loyalty Tab -->
+        <div id="loyaltyTab" class="tab-content">
+            <h2 class="mb-2">Programa de Fidelidade</h2>
+
+            <!-- Saldo de Pontos -->
+            <div class="card mb-3">
+                <div class="card-header text-center">
+                    <h3 class="card-title">Seus Pontos de Fidelidade</h3>
+                </div>
+                <div class="text-center">
+                    <div class="stat-card" style="display: inline-block; margin: 1rem;">
+                        <span class="stat-number" id="loyaltyPoints">0</span>
+                        <div class="stat-label">Pontos Disponíveis</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resgatar Pontos -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Resgatar Pontos</h3>
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label for="pointsToRedeem" class="form-label">Quantidade de Pontos</label>
+                        <input type="number" id="pointsToRedeem" class="form-control" min="1" max="1000">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-primary" id="redeemPointsBtn" style="width: 100%;">Resgatar Pontos</button>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        * Cada 100 pontos equivalem a R$ 10,00 de desconto em serviços<br>
+                        * Mínimo: 1 ponto | Máximo: 1000 pontos por resgate
+                    </small>
+                </div>
+            </div>
+
+            <!-- Histórico de Resgates -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Histórico de Resgates</h3>
+                </div>
+                <div id="redemptionHistory">
+                    <div class="loading">Carregando histórico...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Tab -->
+        <div id="profileTab" class="tab-content">
+            <h2 class="mb-2">Meu Perfil</h2>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Informações Pessoais</h3>
+                </div>
+                <form id="profileForm">
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label for="profileName" class="form-label">Nome Completo</label>
+                            <input type="text" id="profileName" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profileEmail" class="form-label">E-mail</label>
+                            <input type="email" id="profileEmail" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label for="profilePhone" class="form-label">Telefone</label>
+                            <input type="tel" id="profilePhone" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profileBirthDate" class="form-label">Data de Nascimento</label>
+                            <input type="date" id="profileBirthDate" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="profileGender" class="form-label">Gênero</label>
+                        <select id="profileGender" class="form-control form-select">
+                            <option value="">Selecione</option>
+                            <option value="M">Masculino</option>
+                            <option value="F">Feminino</option>
+                            <option value="O">Outro</option>
+                        </select>
+                    </div>
+
+                    <div class="d-flex gap-1">
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar Alterações</button>
+                        <button type="button" class="btn btn-secondary" id="changePasswordBtn" style="flex: 1;">Alterar Senha</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal para Alterar Senha -->
+    <div id="passwordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Alterar Senha</h3>
+                <button class="modal-close" id="closePasswordModal">&times;</button>
+            </div>
+            <form id="passwordForm">
+                <div class="form-group">
+                    <label for="currentPassword" class="form-label">Senha Atual</label>
+                    <input type="password" id="currentPassword" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="newPassword" class="form-label">Nova Senha</label>
+                    <input type="password" id="newPassword" class="form-control" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="confirmNewPassword" class="form-label">Confirmar Nova Senha</label>
+                    <input type="password" id="confirmNewPassword" class="form-control" required>
+                </div>
+                <div class="d-flex gap-1 mt-2">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Alterar Senha</button>
+                    <button type="button" class="btn btn-secondary" id="cancelPasswordBtn" style="flex: 1;">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/frontend/config.js"></script>
+    <script src="/frontend/app.js"></script>
+    <script>
+        // Variáveis globais
+        let currentTab = 'dashboard';
+        let clientProfile = null;
+        let selectedService = null;
+        let selectedProfessional = null;
+        let selectedDate = null;
+        let selectedTime = null;
+
+        // Sistema de atualização em tempo real
+        let dashboardData = null; // Cache dos dados do dashboard
+        let lastUpdateTime = null; // Timestamp da última atualização
+        let autoRefreshInterval = null; // Intervalo de atualização automática
+        let isUpdating = false; // Flag para evitar múltiplas atualizações simultâneas
+        let realtimeInterval = null; // Intervalo para atualização em tempo real
+
+        // Elementos DOM para agendamento
+        const serviceSelect = document.getElementById('serviceSelect');
+        const professionalSelect = document.getElementById('professionalSelect');
+        const appointmentDate = document.getElementById('appointmentDate');
+        const timeSelect = document.getElementById('timeSelect');
+        const clientData = document.getElementById('clientData');
+        const scheduleBtn = document.getElementById('scheduleBtn');
+        const messages = document.getElementById('messages');
+
+        // Função para mostrar mensagem de sessão expirada
+        function showSessionExpiredMessage() {
+            const errorDiv = document.getElementById('errorMessages');
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = `
+                <div class="alert alert-error" style="margin-bottom: 1rem;">
+                    <strong>Sessão expirada</strong><br>
+                    Faça login novamente para continuar.
+                </div>
+            `;
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 3000);
+        }
+
+        // Variáveis globais para salão
+        let currentSalonInfo = null;
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('[DASHBOARD] Inicializando dashboard do cliente com sistema de atualização em tempo real...');
+            console.log('[DEBUG] Verificando se SalonManager está disponível:', typeof SalonManager);
+            console.log('[DEBUG] Métodos disponíveis no SalonManager:', Object.keys(SalonManager || {}));
+
+            // DEBUG: Verificar se o CSS para horários ocupados está carregado
+            console.log('[DEBUG] Verificando carregamento do CSS para #timeSelect option.ocupado');
+            const testStyle = document.querySelector('#timeSelect option.ocupado') ||
+                             document.createElement('option'); // Criar elemento temporário para teste
+            if (testStyle) {
+                testStyle.classList.add('ocupado');
+                document.body.appendChild(testStyle);
+                const computedStyle = window.getComputedStyle(testStyle);
+                console.log('[DEBUG] CSS carregado - estilos computados:', {
+                    color: computedStyle.color,
+                    fontStyle: computedStyle.fontStyle,
+                    backgroundColor: computedStyle.backgroundColor
+                });
+                document.body.removeChild(testStyle);
+            }
+
+            // Verificação completa de autenticação e inicialização do salão
+            await initializeDashboard();
+        });
+
+        // Função de inicialização robusta com sistema de atualização em tempo real
+        async function initializeDashboard() {
+            try {
+                // Passo 1: Verificar token básico
+                console.log('[DASHBOARD] Verificando token...');
+                const token = TokenManager.get();
+
+                if (!token) {
+                    console.warn('[DASHBOARD] Nenhum token encontrado');
+                    showAuthError('Nenhuma sessão encontrada. Faça login para continuar.');
+                    return;
+                }
+
+                // Passo 2: Verificar validade do token
+                if (!TokenManager.isValid()) {
+                    console.warn('[DASHBOARD] Token inválido ou expirado');
+                    showAuthError('Sua sessão expirou. Faça login novamente.');
+                    return;
+                }
+
+                // Passo 3: Verificar role do usuário
+                const userRole = TokenManager.getRole();
+                console.log(`[DASHBOARD] Role do usuário: ${userRole}`);
+
+                if (userRole !== 'cliente') {
+                    console.warn(`[DASHBOARD] Role incorreta: ${userRole}, esperado: cliente`);
+                    showAuthError('Acesso negado. Esta página é apenas para clientes.');
+                    return;
+                }
+
+                console.log('[DASHBOARD] Autenticação validada, inicializando salão e sistema de atualização...');
+
+                // Passo 4: Inicializar salão
+                try {
+                    console.log('[DEBUG] Iniciando SalonManager.initializeSalon()...');
+                    currentSalonInfo = await SalonManager.initializeSalon();
+                    console.log('[DEBUG] SalonManager.initializeSalon() retornou:', currentSalonInfo);
+
+                    if (currentSalonInfo) {
+                        console.log('[DEBUG] Chamando updateSalonDisplay com dados válidos');
+                        updateSalonDisplay(currentSalonInfo);
+                    } else {
+                        console.warn('[DEBUG] currentSalonInfo é null/undefined após inicialização');
+                    }
+
+                    console.log('[DASHBOARD] Salão inicializado:', currentSalonInfo);
+                } catch (salonError) {
+                    console.error('[DASHBOARD] Erro ao inicializar salão:', salonError);
+                    console.error('[DEBUG] Detalhes do erro:', {
+                        message: salonError.message,
+                        stack: salonError.stack,
+                        hasActiveSalon: SalonManager.hasActiveSalon ? SalonManager.hasActiveSalon() : 'método não disponível'
+                    });
+
+                    // Se não conseguiu inicializar salão, redirecionar para seleção
+                    if (salonError.message.includes('não encontrado') ||
+                        salonError.message.includes('não disponível') ||
+                        !SalonManager.hasActiveSalon()) {
+                        console.log('[DASHBOARD] Redirecionando para seleção de salão...');
+                        window.location.href = 'salon-selection.html';
+                        return;
+                    }
+
+                    // Para outros erros, mostrar mensagem
+                    showAuthError('Erro ao carregar informações do salão. Tente recarregar a página.');
+                    return;
+                }
+
+                // Passo 5: Configurar event listeners
+                setupEventListeners();
+
+                // Passo 6: Inicializar sistema de atualização em tempo real
+                await initializeRealTimeUpdates();
+
+                console.log('[DASHBOARD] Sistema de atualização em tempo real inicializado com sucesso');
+
+            } catch (error) {
+                console.error('[DASHBOARD] Erro na inicialização:', error);
+
+                // Tratamento específico de erros
+                if (error.message.includes('401') || error.message.includes('não autorizado')) {
+                    showAuthError('Sessão inválida. Faça login novamente.');
+                } else if (error.message.includes('403') || error.message.includes('acesso negado')) {
+                    showAuthError('Você não tem permissão para acessar esta página.');
+                } else if (error.message.includes('Erro de conexão')) {
+                    showAuthError('Erro de conexão. Verifique sua internet e recarregue a página.');
+                } else {
+                    showAuthError('Erro ao carregar dashboard. Tente recarregar a página.');
+                }
+            }
+        }
+
+        // Sistema de atualização em tempo real
+        async function initializeRealTimeUpdates() {
+            console.log('[REAL-TIME] Inicializando sistema de atualização em tempo real...');
+
+            // Carregar dados iniciais
+            await carregarDashboard();
+
+            // Configurar atualização automática a cada 10 segundos
+            startAutoRefresh();
+
+            // Configurar atualização quando a aba fica visível novamente
+            setupVisibilityChangeHandler();
+
+            console.log('[REAL-TIME] Sistema inicializado com sucesso');
+        }
+
+        // ========== FUNÇÕES PRINCIPAIS DE DASHBOARD ==========
+
+        /**
+         * Carrega dados iniciais do dashboard e popula a tela
+         */
+        async function carregarDashboard() {
+            console.log('[DASHBOARD] Iniciando carregamento inicial do dashboard...');
+
+            try {
+                // Mostrar indicadores de carregamento
+                showUpdateIndicator(true);
+                UI.showLoading(document.getElementById('clientStatsGrid'));
+                UI.showLoading(document.getElementById('upcomingAppointmentsDashboard'));
+
+                // Fazer requisição para buscar dados
+                console.log('[DASHBOARD] Fazendo requisição para /clients/dashboard-data');
+                const response = await fetch(`${API_CONFIG.BASE_URL}/clients/dashboard-data`, {
+                    headers: {
+                        'Authorization': `Bearer ${TokenManager.get()}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('[DASHBOARD] Resposta da API:', response.status, response.statusText);
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        TokenManager.remove();
+                        showAuthError('Sessão expirada. Faça login novamente.');
+                        return;
+                    }
+                    throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('[DASHBOARD] Dados recebidos do backend:', data);
+                console.log('[DASHBOARD] upcoming_appointments:', data.upcoming_appointments?.length || 0);
+                console.log('[DASHBOARD] pending_appointments:', data.pending_appointments?.length || 0);
+                console.log('[DASHBOARD] service_history:', data.service_history?.length || 0);
+
+                // Validar estrutura dos dados
+                if (!data || typeof data !== 'object') {
+                    throw new Error('Dados recebidos do servidor são inválidos');
+                }
+
+                // Atualizar cache local
+                dashboardData = data;
+                lastUpdateTime = new Date();
+
+                // Popular interface com dados recebidos
+                await renderizarDashboard(data);
+
+                // Esconder indicadores de carregamento
+                showUpdateIndicator(false);
+
+                console.log('[DASHBOARD] Dashboard carregado com sucesso');
+
+            } catch (error) {
+                console.error('[DASHBOARD] Erro ao carregar dashboard:', error);
+                showUpdateIndicator(false);
+
+                // Mostrar mensagem de erro amigável
+                const errorMsg = error.message.includes('fetch') || error.message.includes('network') ?
+                    'Erro de conexão. Verifique sua internet e tente novamente.' :
+                    'Erro ao carregar dados do dashboard. Tente recarregar a página.';
+
+                UI.showError(errorMsg, 'errorMessages');
+
+                // Em caso de erro crítico, mostrar valores padrão
+                if (!dashboardData) {
+                    renderizarDashboardVazio();
+                }
+            }
+        }
+
+        /**
+         * Atualiza dashboard com novos dados (após mudanças)
+         * @param {boolean} forceUpdate - Se true, força atualização independente de comparação de dados
+         */
+        async function atualizarDashboard(forceUpdate = false) {
+            if (isUpdating && !forceUpdate) {
+                console.log('[DASHBOARD] Atualização já em andamento, pulando...');
+                return;
+            }
+
+            isUpdating = true;
+
+            try {
+                // Fazer requisição para buscar dados atualizados
+                const response = await fetch(`${API_CONFIG.BASE_URL}/clients/dashboard-data`, {
+                    headers: {
+                        'Authorization': `Bearer ${TokenManager.get()}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        TokenManager.remove();
+                        showAuthError('Sessão expirada. Faça login novamente.');
+                        return;
+                    }
+                    throw new Error(`Erro HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('[DASHBOARD] Dados recebidos na atualização:', data.upcoming_appointments?.length || 0, 'agendamentos');
+
+                // CORREÇÃO: Para atualizações manuais ou quando forceUpdate=true, sempre atualizar
+                // Para auto-refresh, verificar se dados mudaram
+                const shouldUpdate = forceUpdate || JSON.stringify(dashboardData) !== JSON.stringify(data);
+
+                if (shouldUpdate) {
+                    console.log('[DASHBOARD] Atualizando interface com novos dados...');
+                    // Atualizar cache
+                    dashboardData = data;
+                    lastUpdateTime = new Date();
+
+                    // Re-renderizar interface
+                    await renderizarDashboard(data);
+                    console.log('[DASHBOARD] Interface atualizada com sucesso');
+                } else {
+                    console.log('[DASHBOARD] Dados não mudaram, pulando re-renderização');
+                }
+
+            } catch (error) {
+                console.error('[DASHBOARD] Erro ao atualizar dashboard:', error);
+
+                // Não mostrar erro para atualizações automáticas, apenas log
+                if (error.message.includes('401')) {
+                    showAuthError('Sessão expirada. Faça login novamente.');
+                }
+            } finally {
+                isUpdating = false;
+            }
+        }
+
+        /**
+         * Renderiza todo o dashboard com os dados fornecidos
+         */
+        async function renderizarDashboard(data) {
+            try {
+                // 1. Atualizar perfil
+                if (data.profile) {
+                    updateProfileSection(data.profile);
+                }
+
+                // 2. Atualizar estatísticas
+                if (data.stats) {
+                    updateStatsSection(data.stats);
+                }
+
+                // 3. Renderizar agendamentos (dependendo da aba atual)
+                if (currentTab === 'dashboard' && data.upcoming_appointments) {
+                    renderizarAgendamentos(data.upcoming_appointments, 'upcomingAppointmentsDashboard');
+                } else if (currentTab === 'appointments') {
+                    if (data.upcoming_appointments) {
+                        renderizarAgendamentos(data.upcoming_appointments, 'upcomingAppointments');
+                    }
+                    if (data.pending_appointments) {
+                        displayPendingAppointments(data.pending_appointments);
+                    }
+                }
+
+                // 4. Atualizar histórico se estiver na aba correspondente
+                if (currentTab === 'history' && data.service_history) {
+                    updateHistorySection(data.service_history);
+                }
+
+                // 5. Atualizar pontos de fidelidade
+                if (currentTab === 'loyalty' && data.profile) {
+                    updateLoyaltySection(data.profile.pontos_fidelidade);
+                }
+
+                // 6. Atualizar aba de perfil se estiver ativa
+                if (currentTab === 'profile' && data.profile) {
+                    populateProfileForm();
+                }
+
+            } catch (error) {
+                console.error('[DASHBOARD] Erro ao renderizar dashboard:', error);
+                UI.showError('Erro ao exibir dados do dashboard.', 'errorMessages');
+            }
+        }
+
+        /**
+         * Renderiza lista de agendamentos em um container específico
+         */
+        function renderizarAgendamentos(appointments, containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.warn(`[DASHBOARD] Container ${containerId} não encontrado`);
+                return;
+            }
+
+            console.log(`[DASHBOARD] Renderizando ${appointments?.length || 0} agendamentos em ${containerId}`);
+            console.log(`[DASHBOARD] Appointments data:`, appointments);
+
+            if (!appointments || appointments.length === 0) {
+                console.log(`[DASHBOARD] Nenhum agendamento encontrado, mostrando mensagem vazia em ${containerId}`);
+                let message = 'Nenhum agendamento encontrado';
+                if (containerId.includes('pending')) {
+                    message = 'Nenhum agendamento pendente encontrado';
+                } else if (containerId.includes('upcoming')) {
+                    message = 'Nenhum agendamento encontrado';
+                }
+                container.innerHTML = `
+                    <div class="text-center" style="padding: 2rem;">
+                        <p style="color: #666; margin-bottom: 1rem;">📅 ${message}</p>
+                        <p style="font-size: 0.875rem; color: #888;">${containerId.includes('Dashboard') ? 'Que tal agendar seu próximo serviço?' : ''}</p>
+                        ${containerId.includes('Dashboard') ? '<button class="btn btn-primary" onclick="switchTab(\'book-service\')" style="margin-top: 1rem;">Agendar Serviço</button>' : ''}
+                    </div>
+                `;
+                return;
+            }
+
+            // Limitar a 5 agendamentos no dashboard
+            const appointmentsToShow = containerId.includes('Dashboard') ? appointments.slice(0, 5) : appointments;
+            console.log(`[DASHBOARD] Mostrando ${appointmentsToShow.length} agendamentos (limitado para dashboard: ${containerId.includes('Dashboard')})`);
+
+            // Verificar se está em modo mobile (largura <= 768px)
+            const isMobile = window.innerWidth <= 768;
+
+            if (isMobile) {
+                // Renderizar como cards para mobile
+                container.innerHTML = `
+                    <div class="appointments-cards">
+                        ${appointmentsToShow.map((apt, index) => {
+                            console.log(`[DASHBOARD] Renderizando agendamento ${index + 1} como card:`, apt);
+                            const canCancel = canCancelAppointment(apt);
+                            return `
+                            <div class="appointment-card">
+                                <div class="appointment-card-header">
+                                    <div class="appointment-service">${apt.servico?.nome || apt.service_name || 'N/A'}</div>
+                                    <div class="appointment-status">
+                                        <span class="badge ${getStatusClass(apt.status)}">${getStatusText(apt.status)}</span>
+                                    </div>
+                                </div>
+                                <div class="appointment-card-body">
+                                    <div class="appointment-detail">
+                                        <strong>Profissional:</strong> ${apt.profissional?.nome || apt.professional_name || 'N/A'}
+                                    </div>
+                                    <div class="appointment-detail">
+                                        <strong>Data/Hora:</strong> ${Formatter.datetime(apt.data_hora || apt.appointment_date)}
+                                    </div>
+                                    ${containerId.includes('Dashboard') ? '' : `<div class="appointment-detail"><strong>Valor:</strong> ${apt.valor ? Formatter.currency(apt.valor) : 'N/A'}</div>`}
+                                    ${canCancel ? `
+                                    <div class="appointment-actions" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
+                                        <button class="btn btn-danger btn-sm" onclick="cancelAppointment(${apt.id})" style="width: 100%;">
+                                            ❌ Cancelar Agendamento
+                                        </button>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                        }).join('')}
+                    </div>
+                `;
+            } else {
+                // Renderizar como tabela para desktop
+                container.innerHTML = `
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Serviço</th>
+                                <th>Profissional</th>
+                                <th>Data/Hora</th>
+                                <th>Status</th>
+                                ${containerId.includes('Dashboard') ? '' : '<th>Valor</th>'}
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${appointmentsToShow.map((apt, index) => {
+                                console.log(`[DASHBOARD] Renderizando agendamento ${index + 1}:`, apt);
+                                const canCancel = canCancelAppointment(apt);
+                                return `
+                                <tr>
+                                    <td>${apt.servico?.nome || apt.service_name || 'N/A'}</td>
+                                    <td>${apt.profissional?.nome || apt.professional_name || 'N/A'}</td>
+                                    <td>${Formatter.datetime(apt.data_hora || apt.appointment_date)}</td>
+                                    <td><span class="badge ${getStatusClass(apt.status)}">${getStatusText(apt.status)}</span></td>
+                                    ${containerId.includes('Dashboard') ? '' : `<td>${apt.valor ? Formatter.currency(apt.valor) : 'N/A'}</td>`}
+                                    <td>
+                                        ${canCancel ? `<button class="btn btn-danger btn-sm" onclick="cancelAppointment(${apt.id})">Cancelar</button>` : '-'}
+                                    </td>
+                                </tr>
+                            `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            console.log(`[DASHBOARD] ${appointmentsToShow.length} agendamentos renderizados em ${containerId} (modo: ${isMobile ? 'mobile' : 'desktop'})`);
+        }
+
+        /**
+         * Renderiza dashboard vazio (quando não há dados)
+         */
+        function renderizarDashboardVazio() {
+            console.log('[DASHBOARD] Renderizando dashboard vazio');
+
+            // Estatísticas vazias
+            const statsGrid = document.getElementById('clientStatsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <span class="stat-number">0</span>
+                    <div class="stat-label">Total de Agendamentos</div>
+                    <small style="color: #666; font-size: 0.75rem;">Nenhum agendamento realizado ainda</small>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">0</span>
+                    <div class="stat-label">Pontos de Fidelidade</div>
+                    <small style="color: #666; font-size: 0.75rem;">Sem pontos acumulados</small>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">0</span>
+                    <div class="stat-label">Próximos Agendamentos</div>
+                    <small style="color: #666; font-size: 0.75rem;">Nenhum agendamento futuro</small>
+                </div>
+            `;
+
+            // Agendamentos vazios
+            renderizarAgendamentos([], 'upcomingAppointmentsDashboard');
+        }
+
+
+        // Atualizar seção de perfil
+        function updateProfileSection(profile) {
+            if (!profile) return;
+
+            clientProfile = profile; // Atualizar variável global
+
+            // Atualizar mensagem de boas-vindas
+            const nome = profile.nome || profile.name || 'Cliente';
+            document.getElementById('welcomeMessage').textContent = `Olá, ${nome}!`;
+
+            // Se estiver na aba de perfil, atualizar formulário
+            if (currentTab === 'profile') {
+                populateProfileForm();
+            }
+
+            console.log('[REAL-TIME] Perfil atualizado');
+        }
+
+        // Atualizar seção de estatísticas
+        function updateStatsSection(stats) {
+            if (!stats) return;
+
+            const statsGrid = document.getElementById('clientStatsGrid');
+
+            // Função auxiliar para criar card com mensagem quando zero
+            const createStatCard = (value, label, emptyMessage) => {
+                if (value === 0 || value === null || value === undefined) {
+                    return `
+                        <div class="stat-card">
+                            <span class="stat-number">0</span>
+                            <div class="stat-label">${label}</div>
+                            <small style="color: #666; font-size: 0.75rem;">${emptyMessage}</small>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="stat-card">
+                            <span class="stat-number">${value}</span>
+                            <div class="stat-label">${label}</div>
+                        </div>
+                    `;
+                }
+            };
+
+            statsGrid.innerHTML = `
+                ${createStatCard(stats.total_appointments, 'Total de Agendamentos', 'Nenhum agendamento realizado ainda')}
+                ${createStatCard(stats.loyalty_points, 'Pontos de Fidelidade', 'Sem pontos acumulados')}
+                ${createStatCard(stats.upcoming_appointments, 'Próximos Agendamentos', 'Nenhum agendamento futuro')}
+            `;
+
+            console.log('[REAL-TIME] Estatísticas atualizadas');
+        }
+
+
+
+        // Atualizar seção de histórico
+        function updateHistorySection(history) {
+            displayServiceHistory(history || []);
+            console.log('[REAL-TIME] Histórico atualizado');
+        }
+
+        // Atualizar seção de pontos de fidelidade
+        function updateLoyaltySection(points) {
+            document.getElementById('loyaltyPoints').textContent = points || 0;
+            console.log('[REAL-TIME] Pontos de fidelidade atualizados');
+        }
+
+        // Mostrar/esconder indicador de atualização e atualizar timestamp
+        function showUpdateIndicator(show) {
+            let indicator = document.getElementById('updateIndicator');
+
+            if (show) {
+                if (!indicator) {
+                    indicator = document.createElement('div');
+                    indicator.id = 'updateIndicator';
+                    indicator.innerHTML = `
+                        <div style="
+                            position: fixed;
+                            top: 20px;
+                            right: 20px;
+                            background: #007bff;
+                            color: white;
+                            padding: 0.5rem 1rem;
+                            border-radius: 0.25rem;
+                            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                            z-index: 1000;
+                            font-size: 0.875rem;
+                        ">
+                            🔄 Atualizando dados...
+                        </div>
+                    `;
+                    document.body.appendChild(indicator);
+                }
+                indicator.style.display = 'block';
+            } else {
+                if (indicator) {
+                    indicator.style.display = 'none';
+                }
+                // Atualizar timestamp da última atualização
+                updateLastUpdateTime();
+            }
+        }
+
+        // Atualizar indicador de última atualização
+        function updateLastUpdateTime() {
+            const lastUpdateElement = document.getElementById('lastUpdateTime');
+            if (lastUpdateElement && lastUpdateTime) {
+                const now = new Date();
+                const diffMs = now - lastUpdateTime;
+                const diffMins = Math.floor(diffMs / 60000);
+
+                let timeText;
+                if (diffMins < 1) {
+                    timeText = 'Atualizado agora';
+                } else if (diffMins === 1) {
+                    timeText = 'Atualizado há 1 min';
+                } else if (diffMins < 60) {
+                    timeText = `Atualizado há ${diffMins} min`;
+                } else {
+                    const diffHours = Math.floor(diffMins / 60);
+                    timeText = `Atualizado há ${diffHours}h`;
+                }
+
+                lastUpdateElement.textContent = timeText;
+                lastUpdateElement.style.color = diffMins > 5 ? '#ff6b6b' : '#28a745';
+            }
+        }
+
+        // Carregar estatísticas do cliente
+        async function carregarEstatisticas() {
+            try {
+                console.log('[STATS] Carregando estatísticas do cliente...');
+
+                const token = TokenManager.get();
+                if (!token) {
+                    console.warn('[STATS] Nenhum token encontrado');
+                    return;
+                }
+
+                const response = await fetch(`${API_CONFIG.BASE_URL}/clients/dashboard-data`, {
+                    headers: {
+                        'Authorization': `Bearer ${TokenManager.get()}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('[STATS] Dados recebidos:', data);
+
+                // Atualizar estatísticas na interface
+                if (data.stats) {
+                    atualizarEstatisticasInterface(data.stats);
+                }
+
+            } catch (error) {
+                console.error('[STATS] Erro ao carregar estatísticas:', error);
+            }
+        }
+
+        // Carregar próximos agendamentos
+        async function carregarProximosAgendamentos() {
+            try {
+                console.log('[APPOINTMENTS] Carregando próximos agendamentos...');
+
+                const token = TokenManager.get();
+                if (!token) {
+                    console.warn('[APPOINTMENTS] Nenhum token encontrado');
+                    return;
+                }
+
+                const response = await fetch(`${API_CONFIG.BASE_URL}/clients/dashboard-data`, {
+                    headers: {
+                        'Authorization': `Bearer ${TokenManager.get()}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('[APPOINTMENTS] Dados recebidos:', data);
+
+                // Atualizar agendamentos na interface
+                if (data.upcoming_appointments) {
+                    atualizarAgendamentosInterface(data.upcoming_appointments);
+                }
+
+            } catch (error) {
+                console.error('[APPOINTMENTS] Erro ao carregar agendamentos:', error);
+            }
+        }
+
+        // Atualizar estatísticas na interface
+        function atualizarEstatisticasInterface(stats) {
+            console.log('[STATS] Atualizando interface com estatísticas:', stats);
+
+            // Atualizar Total de Agendamentos
+            const totalAppointmentsEl = document.querySelector('#clientStatsGrid .stat-card:nth-child(1) .stat-number');
+            if (totalAppointmentsEl) {
+                totalAppointmentsEl.textContent = stats.total_appointments || 0;
+                console.log('[STATS] Total de agendamentos atualizado:', stats.total_appointments);
+            }
+
+            // Atualizar Pontos de Fidelidade
+            const loyaltyPointsEl = document.querySelector('#clientStatsGrid .stat-card:nth-child(2) .stat-number');
+            if (loyaltyPointsEl) {
+                loyaltyPointsEl.textContent = stats.loyalty_points || 0;
+                console.log('[STATS] Pontos de fidelidade atualizados:', stats.loyalty_points);
+            }
+
+            // Atualizar Próximos Agendamentos
+            const upcomingAppointmentsEl = document.querySelector('#clientStatsGrid .stat-card:nth-child(3) .stat-number');
+            if (upcomingAppointmentsEl) {
+                upcomingAppointmentsEl.textContent = stats.upcoming_appointments || 0;
+                console.log('[STATS] Próximos agendamentos atualizados:', stats.upcoming_appointments);
+            }
+        }
+
+        // Atualizar agendamentos na interface
+        function atualizarAgendamentosInterface(appointments) {
+            console.log('[APPOINTMENTS] Atualizando interface com agendamentos:', appointments);
+
+            const container = document.getElementById('upcomingAppointmentsDashboard');
+            if (!container) {
+                console.warn('[APPOINTMENTS] Container não encontrado');
+                return;
+            }
+
+            if (!appointments || appointments.length === 0) {
+                console.log('[APPOINTMENTS] Nenhum agendamento encontrado, mostrando mensagem vazia');
+                container.innerHTML = `
+                    <div class="text-center" style="padding: 2rem;">
+                        <p style="color: #666; margin-bottom: 1rem;">📅 Nenhum agendamento futuro encontrado</p>
+                        <p style="font-size: 0.875rem; color: #888;">Que tal agendar seu próximo serviço?</p>
+                        <button class="btn btn-primary" onclick="switchTab('book-service')" style="margin-top: 1rem;">Agendar Serviço</button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Limitar a 5 agendamentos no dashboard
+            const appointmentsToShow = appointments.slice(0, 5);
+            console.log('[APPOINTMENTS] Mostrando', appointmentsToShow.length, 'agendamentos');
+
+            container.innerHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Serviço</th>
+                            <th>Profissional</th>
+                            <th>Data/Hora</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${appointmentsToShow.map((apt, index) => {
+                            console.log('[APPOINTMENTS] Renderizando agendamento', index + 1, ':', apt);
+                            return `
+                            <tr>
+                                <td>${apt.servico?.nome || apt.service_name || 'N/A'}</td>
+                                <td>${apt.profissional?.nome || apt.professional_name || 'N/A'}</td>
+                                <td>${apt.data_hora ? Formatter.datetime(apt.data_hora) : 'N/A'}</td>
+                                <td><span class="badge ${getStatusClass(apt.status)}">${getStatusText(apt.status)}</span></td>
+                            </tr>
+                        `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            console.log('[APPOINTMENTS] Interface atualizada com', appointmentsToShow.length, 'agendamentos');
+        }
+
+        // Iniciar atualização automática
+        function startAutoRefresh() {
+            // Limpar intervalo existente se houver
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+
+            // Atualizar a cada 10 segundos
+            autoRefreshInterval = setInterval(async () => {
+                try {
+                    await atualizarDashboard();
+
+                    // Atualizar aba de perfil se estiver ativa
+                    if (currentTab === 'profile' && clientProfile) {
+                        populateProfileForm();
+                    }
+                } catch (error) {
+                    console.error('[REAL-TIME] Erro na atualização automática:', error);
+                }
+            }, 10000); // 10 segundos
+        }
+
+        // Configurar handler para quando a aba fica visível novamente
+        function setupVisibilityChangeHandler() {
+            document.addEventListener('visibilitychange', async () => {
+                if (!document.hidden && dashboardData) {
+                    console.log('[REAL-TIME] Aba tornou-se visível, verificando necessidade de atualização...');
+
+                    // Verificar se passaram mais de 5 minutos desde a última atualização
+                    const now = new Date();
+                    const timeDiff = now - lastUpdateTime;
+                    const fiveMinutes = 5 * 60 * 1000;
+
+                    if (timeDiff > fiveMinutes) {
+                        console.log('[REAL-TIME] Fazendo atualização forçada após retorno da aba');
+                        await atualizarDashboard();
+                    }
+                }
+            });
+        }
+
+        // Função para forçar atualização manual
+        async function forceRefresh() {
+            console.log('[REAL-TIME] Atualização manual solicitada');
+            await atualizarDashboard(true); // Forçar atualização
+            UI.showSuccess('Dados atualizados com sucesso!');
+        }
+
+        // Função para mostrar erros de autenticação
+        function showAuthError(message) {
+            const errorDiv = document.getElementById('errorMessages');
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = `
+                <div class="alert alert-error" style="margin-bottom: 1rem;">
+                    <strong>Erro de Autenticação</strong><br>
+                    ${message}
+                </div>
+                <div style="text-align: center;">
+                    <button onclick="window.location.href='login.html'" class="btn btn-primary">
+                        Fazer Login
+                    </button>
+                </div>
+            `;
+
+            // Auto-redirecionamento após 5 segundos
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 5000);
+        }
+
+        // Configurar event listeners
+        function setupEventListeners() {
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', () => api.logout());
+
+            // Tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+            });
+
+            // Botão de atualização manual (novo)
+            const refreshBtn = document.getElementById('refreshAppointmentsBtn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', forceRefresh);
+            }
+
+            // Listener para mudanças de salão (não aplicável para clientes)
+            // window.addEventListener('salonChanged', handleSalonChanged);
+
+            // Listener para redimensionamento da janela (responsividade)
+            window.addEventListener('resize', handleWindowResize);
+
+            // Loyalty points
+            document.getElementById('redeemPointsBtn').addEventListener('click', redeemPoints);
+
+            // Profile
+            document.getElementById('profileForm').addEventListener('submit', updateProfile);
+            document.getElementById('changePasswordBtn').addEventListener('click', openPasswordModal);
+
+            // Booking
+            document.getElementById('refreshBookingBtn').addEventListener('click', () => refreshBookingData());
+            document.getElementById('serviceSelect').addEventListener('change', handleServiceChange);
+            document.getElementById('appointmentDate').addEventListener('change', handleDateChange);
+            document.getElementById('timeSelect').addEventListener('change', handleTimeChange);
+            document.getElementById('scheduleBtn').addEventListener('click', handleScheduleWithUpdate);
+
+            // Password modal
+            document.getElementById('closePasswordModal').addEventListener('click', closePasswordModal);
+            document.getElementById('cancelPasswordBtn').addEventListener('click', closePasswordModal);
+            document.getElementById('passwordModal').addEventListener('click', (e) => {
+                if (e.target.id === 'passwordModal') closePasswordModal();
+            });
+            document.getElementById('passwordForm').addEventListener('submit', changePassword);
+        }
+
+        // Lidar com redimensionamento da janela para responsividade
+        let resizeTimeout;
+        function handleWindowResize() {
+            // Debounce para evitar muitas chamadas
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                console.log('[RESIZE] Janela redimensionada, verificando necessidade de re-renderização');
+                // Re-renderizar agendamentos se houver dados em cache
+                if (dashboardData) {
+                    if (currentTab === 'dashboard' && dashboardData.upcoming_appointments) {
+                        renderizarAgendamentos(dashboardData.upcoming_appointments, 'upcomingAppointmentsDashboard');
+                    } else if (currentTab === 'appointments') {
+                        if (dashboardData.upcoming_appointments) {
+                            renderizarAgendamentos(dashboardData.upcoming_appointments, 'upcomingAppointments');
+                        }
+                        if (dashboardData.pending_appointments) {
+                            displayPendingAppointments(dashboardData.pending_appointments);
+                        }
+                    }
+                }
+            }, 250); // 250ms de debounce
+        }
+
+        // Alternar entre tabs
+        function switchTab(tabName) {
+            console.log(`[SWITCH-TAB] Alternando para aba: ${tabName}`);
+
+            // Atualizar botões
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = btn.dataset.tab === tabName ? 'btn btn-primary tab-btn active' : 'btn btn-outline tab-btn';
+            });
+
+            // Mostrar/ocultar conteúdo
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName + 'Tab').classList.add('active');
+
+            const previousTab = currentTab;
+            currentTab = tabName;
+
+            // Usar dados em cache se disponíveis, senão carregar dados específicos da tab
+            if (dashboardData) {
+                console.log('[SWITCH-TAB] Usando dados em cache para atualizar aba');
+                renderizarDashboard(dashboardData);
+            } else {
+                console.log('[SWITCH-TAB] Carregando dados específicos da aba');
+
+                // Carregar dados específicos da tab (fallback)
+                switch(tabName) {
+                    case 'dashboard':
+                        // Dashboard usa dados do cache, se não houver, carregar
+                        if (!dashboardData) {
+                            carregarDashboard();
+                        }
+                        break;
+                    case 'appointments':
+                        loadAppointments();
+                        break;
+                    case 'book-service':
+                        startBookingProcess();
+                        break;
+                    case 'history':
+                        loadServiceHistory();
+                        break;
+                    case 'loyalty':
+                        loadLoyaltyInfo();
+                        break;
+                    case 'profile':
+                        if (clientProfile) {
+                            populateProfileForm();
+                        } else {
+                            loadClientProfile();
+                        }
+                        break;
+                }
+            }
+        }
+
+        // Carregar perfil do cliente
+        async function loadClientProfile() {
+            try {
+                console.log('[DASHBOARD] Carregando perfil do cliente...');
+
+                // Tentar carregar perfil via API
+                clientProfile = await api.getClientProfile();
+
+                console.log('[DASHBOARD] Perfil carregado:', clientProfile);
+
+                // Validar dados essenciais
+                if (!clientProfile || !clientProfile.id) {
+                    throw new Error('Perfil inválido recebido do servidor');
+                }
+
+                // Atualizar mensagem de boas-vindas
+                const nome = clientProfile.nome || clientProfile.name || 'Cliente';
+                document.getElementById('welcomeMessage').textContent = `Olá, ${nome}!`;
+
+                // Se estiver na aba de perfil, popular formulário
+                if (currentTab === 'profile') {
+                    populateProfileForm();
+                }
+
+                // Preencher dados do cliente para agendamento (sempre disponível)
+                populateClientDataForBooking();
+
+                return clientProfile;
+
+            } catch (error) {
+                console.error('[DASHBOARD] Erro ao carregar perfil:', error);
+
+                // Verificar se é erro de autenticação
+                if (error.message.includes('401') || error.message.includes('não autorizado') ||
+                    error.message.includes('Sessão expirada')) {
+                    console.warn('[DASHBOARD] Erro de autenticação no perfil');
+                    TokenManager.remove();
+                    showAuthError('Sessão expirada. Faça login novamente.');
+                    throw error; // Interrompe execução
+                }
+
+                // Para outros erros, tentar usar dados do token como fallback
+                console.warn('[DASHBOARD] Usando dados do token como fallback');
+                const tokenPayload = TokenManager.getPayload();
+
+                if (tokenPayload && tokenPayload.sub) {
+                    clientProfile = {
+                        id: parseInt(tokenPayload.sub),
+                        nome: tokenPayload.name || 'Cliente',
+                        email: tokenPayload.email || '',
+                        telefone: '',
+                        pontos_fidelidade: 0,
+                        salon_id: tokenPayload.salon_id || 1
+                    };
+
+                    document.getElementById('welcomeMessage').textContent = `Olá, ${clientProfile.nome}!`;
+                    UI.showInfo('Perfil carregado parcialmente. Alguns dados podem estar indisponíveis.', 'errorMessages');
+
+                    return clientProfile;
+                }
+
+                // Se não conseguir nem dados do token, erro crítico
+                throw new Error('Não foi possível carregar o perfil do usuário');
+            }
+        }
+
+        // Carregar agendamentos do cliente (usando dados do cache)
+        async function loadAppointments() {
+            try {
+                UI.showLoading(document.getElementById('upcomingAppointments'));
+                UI.showLoading(document.getElementById('pendingAppointments'));
+
+                // Usar dados do cache se disponíveis
+                if (dashboardData) {
+                    console.log('[APPOINTMENTS] Usando dados do cache para agendamentos');
+                    renderizarAgendamentos(dashboardData.upcoming_appointments, 'upcomingAppointments');
+                    displayPendingAppointments(dashboardData.pending_appointments || []);
+                    return;
+                }
+
+                // Fallback: carregar dados se não houver cache
+                console.log('[APPOINTMENTS] Carregando dados específicos de agendamentos');
+                await atualizarDashboard();
+
+            } catch (error) {
+                console.error('Erro ao carregar agendamentos:', error);
+                UI.showError('Erro ao carregar agendamentos. Tente novamente.');
+                displayUpcomingAppointments([]);
+                displayPendingAppointments([]);
+            }
+        }
+
+        // Exibir próximos agendamentos
+        function displayUpcomingAppointments(appointments) {
+            const container = document.getElementById('upcomingAppointments');
+
+            if (appointments.length === 0) {
+                container.innerHTML = '<p class="text-center text-muted">Nenhum agendamento futuro encontrado.</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Serviço</th>
+                            <th>Profissional</th>
+                            <th>Data/Hora</th>
+                            <th>Status</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${appointments.map(apt => `
+                            <tr>
+                                <td>${apt.servico?.nome || 'N/A'}</td>
+                                <td>${apt.profissional?.nome || 'N/A'}</td>
+                                <td>${Formatter.datetime(apt.data_hora)}</td>
+                                <td><span class="badge ${getStatusClass(apt.status)}">${getStatusText(apt.status)}</span></td>
+                                <td>${apt.valor ? Formatter.currency(apt.valor) : 'N/A'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Exibir agendamentos pendentes
+        function displayPendingAppointments(appointments) {
+            const container = document.getElementById('pendingAppointments');
+
+            if (appointments.length === 0) {
+                container.innerHTML = '<p class="text-center text-muted">Nenhum agendamento pendente encontrado.</p>';
+                return;
+            }
+
+            // Verificar se está em modo mobile
+            const isMobile = window.innerWidth <= 768;
+
+            container.innerHTML = `
+                <div class="alert alert-warning">
+                    <strong>Atenção:</strong> Você tem ${appointments.length} agendamento(s) aguardando confirmação.
+                </div>
+            `;
+
+            if (isMobile) {
+                // Renderizar como cards para mobile
+                container.innerHTML += `
+                    <div class="appointments-cards">
+                        ${appointments.map((apt, index) => `
+                        <div class="appointment-card">
+                            <div class="appointment-card-header">
+                                <div class="appointment-service">${apt.servico?.nome || apt.service_name || 'N/A'}</div>
+                                <div class="appointment-status">
+                                    <span class="badge badge-warning">Pendente</span>
+                                </div>
+                            </div>
+                            <div class="appointment-card-body">
+                                <div class="appointment-detail">
+                                    <strong>Profissional:</strong> ${apt.profissional?.nome || apt.professional_name || 'N/A'}
+                                </div>
+                                <div class="appointment-detail">
+                                    <strong>Data/Hora:</strong> ${Formatter.datetime(apt.data_hora || apt.appointment_date)}
+                                </div>
+                                <div class="appointment-detail">
+                                    <strong>Valor:</strong> ${apt.valor ? Formatter.currency(apt.valor) : 'N/A'}
+                                </div>
+                            </div>
+                        </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                // Renderizar como tabela para desktop
+                container.innerHTML += `
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Serviço</th>
+                                <th>Profissional</th>
+                                <th>Data/Hora</th>
+                                <th>Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${appointments.map(apt => `
+                                <tr>
+                                    <td>${apt.servico?.nome || 'N/A'}</td>
+                                    <td>${apt.profissional?.nome || 'N/A'}</td>
+                                    <td>${Formatter.datetime(apt.data_hora)}</td>
+                                    <td>${apt.valor ? Formatter.currency(apt.valor) : 'N/A'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+        }
+
+        // Carregar histórico de serviços (usando dados do cache)
+        async function loadServiceHistory() {
+            try {
+                UI.showLoading(document.getElementById('historicoList'));
+
+                // Usar dados do cache se disponíveis
+                if (dashboardData) {
+                    console.log('[HISTORY] Usando dados do cache para histórico');
+                    updateHistorySection(dashboardData.service_history);
+                    return;
+                }
+
+                // Fallback: carregar dados se não houver cache
+                console.log('[HISTORY] Carregando dados específicos de histórico');
+                await atualizarDashboard();
+
+            } catch (error) {
+                console.error('Erro ao carregar histórico:', error);
+                UI.showInfo('Erro ao carregar histórico.', 'historicoList');
+            }
+        }
+
+        // Exibir histórico de serviços
+        function displayServiceHistory(appointments) {
+            const container = document.getElementById('historicoList');
+
+            if (appointments.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center" style="padding: 2rem;">
+                        <p style="color: #666; margin-bottom: 1rem;">💇 Nenhum serviço realizado ainda</p>
+                        <p style="font-size: 0.875rem; color: #888;">Que tal agendar seu primeiro serviço?</p>
+                        <button class="btn btn-primary" onclick="switchTab('book-service')" style="margin-top: 1rem;">
+                            Agendar Serviço
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Ordenar por data (mais recente primeiro)
+            appointments.sort((a, b) => new Date(b.data_hora) - new Date(a.data_hora));
+
+            container.innerHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Serviço</th>
+                            <th>Profissional</th>
+                            <th>Valor</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${appointments.map(apt => `
+                            <tr>
+                                <td>${Formatter.date(apt.data_hora)}</td>
+                                <td>${apt.servico?.nome || 'N/A'}</td>
+                                <td>${apt.profissional?.nome || 'N/A'}</td>
+                                <td>${apt.valor ? Formatter.currency(apt.valor) : 'N/A'}</td>
+                                <td><span class="badge ${getStatusClass(apt.status)}">${getStatusText(apt.status)}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <div class="text-center mt-2">
+                    <p><strong>Total de serviços realizados:</strong> ${appointments.length}</p>
+                </div>
+            `;
+        }
+
+        // Carregar informações de fidelidade (usando dados do cache)
+        async function loadLoyaltyInfo() {
+            try {
+                // Usar dados do cache se disponíveis
+                if (dashboardData && dashboardData.profile) {
+                    console.log('[LOYALTY] Usando dados do cache para pontos de fidelidade');
+                    updateLoyaltySection(dashboardData.profile.pontos_fidelidade);
+                    return;
+                }
+
+                // Fallback: usar dados do perfil
+                if (clientProfile) {
+                    document.getElementById('loyaltyPoints').textContent = clientProfile.pontos_fidelidade || 0;
+                } else {
+                    const profile = await api.getClientProfile();
+                    document.getElementById('loyaltyPoints').textContent = profile.pontos_fidelidade || 0;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar pontos:', error);
+                document.getElementById('loyaltyPoints').textContent = '0';
+                UI.showError('Erro ao carregar pontos de fidelidade.');
+            }
+        }
+
+        // Resgatar pontos
+        async function redeemPoints() {
+            const pointsToRedeem = parseInt(document.getElementById('pointsToRedeem').value);
+            
+            if (!pointsToRedeem || pointsToRedeem <= 0) {
+                UI.showError('Por favor, insira uma quantidade válida de pontos.');
+                return;
+            }
+
+            const currentPoints = parseInt(document.getElementById('loyaltyPoints').textContent);
+            if (pointsToRedeem > currentPoints) {
+                UI.showError('Você não tem pontos suficientes para este resgate.');
+                return;
+            }
+
+            if (!confirm(`Confirma o resgate de ${pointsToRedeem} pontos?`)) {
+                return;
+            }
+
+            try {
+                await api.redeemClientPoints(clientProfile.id, pointsToRedeem);
+                UI.showSuccess('Pontos resgatados com sucesso!');
+                
+                // Atualizar saldo
+                document.getElementById('loyaltyPoints').textContent = currentPoints - pointsToRedeem;
+                document.getElementById('pointsToRedeem').value = '';
+                
+                // Recarregar perfil
+                loadClientProfile();
+            } catch (error) {
+                console.error('Erro ao resgatar pontos:', error);
+                UI.showError('Erro ao resgatar pontos. Tente novamente.');
+            }
+        }
+
+        // Popular formulário de perfil
+        function populateProfileForm() {
+            if (!clientProfile) return;
+
+            document.getElementById('profileName').value = clientProfile.nome || '';
+            document.getElementById('profileEmail').value = clientProfile.email || '';
+            document.getElementById('profilePhone').value = clientProfile.telefone || '';
+            document.getElementById('profileBirthDate').value = clientProfile.birth_date || '';
+            document.getElementById('profileGender').value = clientProfile.gender || '';
+        }
+
+        // Preencher dados do cliente para agendamento
+        function populateClientDataForBooking() {
+            if (!clientProfile) return;
+
+            console.log('[BOOKING] Preenchendo dados do cliente para agendamento:', clientProfile);
+
+            // Os dados são preenchidos automaticamente quando o cliente vai agendar
+            // Não há campos visíveis para cliente pois ele já está logado
+            // Mas podemos armazenar os dados para uso futuro se necessário
+        }
+
+        // Atualizar perfil
+        async function updateProfile(event) {
+            event.preventDefault();
+            
+            const profileData = {
+                name: document.getElementById('profileName').value,
+                email: document.getElementById('profileEmail').value,
+                phone: document.getElementById('profilePhone').value,
+                birth_date: document.getElementById('profileBirthDate').value || null,
+                gender: document.getElementById('profileGender').value || null
+            };
+
+            try {
+                await api.updateClient(clientProfile.id, profileData);
+                UI.showSuccess('Perfil atualizado com sucesso!');
+                
+                // Atualizar dados locais
+                clientProfile = { ...clientProfile, ...profileData };
+                document.getElementById('welcomeMessage').textContent = `Olá, ${clientProfile.name}!`;
+            } catch (error) {
+                console.error('Erro ao atualizar perfil:', error);
+                UI.showError('Erro ao atualizar perfil. Tente novamente.');
+            }
+        }
+
+        // Modal de alteração de senha
+        function openPasswordModal() {
+            document.getElementById('passwordModal').classList.add('show');
+        }
+
+        function closePasswordModal() {
+            document.getElementById('passwordModal').classList.remove('show');
+            document.getElementById('passwordForm').reset();
+        }
+
+        // Alterar senha
+        async function changePassword(event) {
+            event.preventDefault();
+            
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+
+            if (newPassword !== confirmNewPassword) {
+                UI.showError('As senhas não coincidem.');
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                UI.showError('A nova senha deve ter pelo menos 6 caracteres.');
+                return;
+            }
+
+            try {
+                // Implementar endpoint de alteração de senha se disponível
+                // await api.changePassword(currentPassword, newPassword);
+                
+                UI.showSuccess('Senha alterada com sucesso!');
+                closePasswordModal();
+            } catch (error) {
+                console.error('Erro ao alterar senha:', error);
+                UI.showError('Erro ao alterar senha. Verifique sua senha atual.');
+            }
+        }
+
+        // Carregar dashboard do cliente (usando dados do cache)
+        async function loadClientDashboard() {
+            try {
+                // Só carregar se perfil estiver disponível
+                if (!clientProfile) {
+                    console.log('Perfil não carregado, pulando dashboard');
+                    return;
+                }
+
+                UI.showLoading(document.getElementById('clientStatsGrid'));
+                UI.showLoading(document.getElementById('upcomingAppointmentsDashboard'));
+
+                // Usar dados do cache se disponíveis
+                if (dashboardData) {
+                    console.log('[DASHBOARD] Usando dados do cache para dashboard');
+                    updateStatsSection(dashboardData.stats);
+                    renderizarAgendamentos(dashboardData.upcoming_appointments, 'upcomingAppointmentsDashboard');
+                    return;
+                }
+
+                // Fallback: carregar dados se não houver cache
+                console.log('[DASHBOARD] Carregando dados específicos do dashboard');
+                await carregarDashboard();
+
+            } catch (error) {
+                console.error('Erro ao carregar dashboard:', error);
+                handleDashboardError(error);
+            }
+        }
+
+        // Carregar estatísticas do cliente (usando dados do cache)
+        async function loadClientStats() {
+            try {
+                // Usar dados do cache se disponíveis
+                if (dashboardData && dashboardData.stats) {
+                    console.log('[STATS] Usando dados do cache para estatísticas');
+                    return dashboardData.stats;
+                }
+
+                // Fallback: carregar dados se não houver cache
+                console.log('[STATS] Carregando dados específicos de estatísticas');
+                await atualizarDashboard();
+                return dashboardData?.stats || {
+                    total_appointments: 0,
+                    loyalty_points: clientProfile?.pontos_fidelidade || 0,
+                    upcoming_appointments: 0
+                };
+
+            } catch (error) {
+                console.error('Erro ao carregar estatísticas:', error);
+                // Retornar valores padrão em caso de erro
+                return {
+                    total_appointments: 0,
+                    loyalty_points: clientProfile?.pontos_fidelidade || 0,
+                    upcoming_appointments: 0
+                };
+            }
+        }
+
+        // Exibir estatísticas do cliente
+        function displayClientStats(stats) {
+            const statsGrid = document.getElementById('clientStatsGrid');
+
+            // Função auxiliar para criar card com mensagem quando zero
+            const createStatCard = (value, label, emptyMessage) => {
+                if (value === 0 || value === null || value === undefined) {
+                    return `
+                        <div class="stat-card">
+                            <span class="stat-number">0</span>
+                            <div class="stat-label">${label}</div>
+                            <small style="color: #666; font-size: 0.75rem;">${emptyMessage}</small>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="stat-card">
+                            <span class="stat-number">${value}</span>
+                            <div class="stat-label">${label}</div>
+                        </div>
+                    `;
+                }
+            };
+
+            statsGrid.innerHTML = `
+                ${createStatCard(stats.total_appointments, 'Agendamentos Concluidos', 'Nenhum agendamento concluido ainda')}
+                ${createStatCard(stats.loyalty_points, 'Pontos de Fidelidade', 'Sem pontos acumulados')}
+                ${createStatCard(stats.upcoming_appointments, 'Próximos Agendamentos', 'Nenhum agendamento futuro')}
+            `;
+        }
+
+        // Exibir próximos agendamentos no dashboard
+        function displayUpcomingAppointmentsDashboard(appointments) {
+            const container = document.getElementById('upcomingAppointmentsDashboard');
+
+            if (appointments.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center" style="padding: 2rem;">
+                        <p style="color: #666; margin-bottom: 1rem;">📅 Nenhum agendamento futuro cadastrado</p>
+                        <p style="font-size: 0.875rem; color: #888;">Que tal agendar seu próximo serviço?</p>
+                        <button class="btn btn-primary" onclick="switchTab('book-service')" style="margin-top: 1rem;">
+                            Agendar Serviço
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Serviço</th>
+                            <th>Profissional</th>
+                            <th>Data/Hora</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${appointments.map(apt => `
+                            <tr>
+                                <td>${apt.service_name || apt.servico?.nome || 'N/A'}</td>
+                                <td>${apt.professional_name || apt.profissional?.nome || 'N/A'}</td>
+                                <td>${Formatter.datetime(apt.appointment_date || apt.data_hora)}</td>
+                                <td><span class="badge ${getStatusClass(apt.status)}">${getStatusText(apt.status)}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Tratar erros do dashboard
+        function handleDashboardError(error) {
+            document.getElementById('clientStatsGrid').innerHTML =
+                '<div class="alert alert-error">Erro ao carregar estatísticas. Verifique sua conexão.</div>';
+            document.getElementById('upcomingAppointmentsDashboard').innerHTML =
+                '<div class="alert alert-error">Erro ao carregar agendamentos.</div>';
+            UI.showError('Erro ao carregar dados do dashboard: ' + error.message);
+        }
+
+        // Carregar profissionais em cards
+        async function loadProfessionals() {
+            try {
+                console.log('[BOOKING] Carregando profissionais...');
+
+                const container = document.getElementById('professionalsContainer');
+                container.innerHTML = '<div class="loading">Carregando profissionais...</div>';
+
+                // Obter salon_id do salão ativo
+                const salonId = SalonManager.getActiveSalonId();
+                if (!salonId) {
+                    console.warn('[BOOKING] Nenhum salão ativo encontrado');
+                    container.innerHTML = '<div class="alert alert-error">Erro: nenhum salão ativo.</div>';
+                    return;
+                }
+
+                console.log(`[BOOKING] Usando salon_id ativo: ${salonId}`);
+
+                // Buscar profissionais do salão
+                const response = await fetch(`${API_CONFIG.BASE_URL}/professionals/public/${salonId}`);
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(`Erro ao buscar profissionais: ${result.message}`);
+                }
+
+                const professionals = result.data || [];
+                console.log(`[BOOKING] ${professionals.length} profissionais carregados`);
+
+                if (professionals.length === 0) {
+                    container.innerHTML = '<div class="alert alert-info">Nenhum profissional disponível no momento.</div>';
+                    return;
+                }
+
+                // Renderizar cards de profissionais
+                const html = professionals.map(prof => `
+                    <div class="professional-card" data-professional-id="${prof.id}">
+                        <div class="avatar">${prof.nome.charAt(0).toUpperCase()}</div>
+                        <h4>${prof.nome}</h4>
+                        <p class="specialty">${prof.especialidade || 'Geral'}</p>
+                    </div>
+                `).join('');
+
+                console.log('[BOOKING] HTML gerado:', html);
+                container.innerHTML = html;
+                console.log('[BOOKING] innerHTML definido, container children:', container.children.length);
+
+                // Adicionar event listeners aos cards
+                document.querySelectorAll('.professional-card').forEach(card => {
+                    card.addEventListener('click', () => selectProfessional(card.dataset.professionalId));
+                });
+
+                console.log('[BOOKING] Profissionais carregados com sucesso');
+            } catch (error) {
+                console.error('[BOOKING] Erro ao carregar profissionais:', error);
+                document.getElementById('professionalsContainer').innerHTML =
+                    '<div class="alert alert-error">Erro ao carregar profissionais. Tente novamente.</div>';
+            }
+        }
+
+        // Selecionar profissional
+        async function selectProfessional(professionalId) {
+            console.log(`[BOOKING] Selecionando profissional: ${professionalId}`);
+            console.log(`[DEBUG] Salão ativo: ${SalonManager.getActiveSalonId()}`);
+            console.log(`[DEBUG] Client profile salon_id: ${clientProfile?.salon_id}`);
+
+            // Atualizar visual dos cards
+            document.querySelectorAll('.professional-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            document.querySelector(`[data-professional-id="${professionalId}"]`).classList.add('selected');
+
+            selectedProfessional = professionalId;
+
+            // Mostrar seção de serviços e carregar serviços do profissional
+            document.getElementById('servicesSection').style.display = 'block';
+            await loadProfessionalServices(professionalId);
+
+            // Esconder seções posteriores
+            document.getElementById('dateSection').style.display = 'none';
+            document.getElementById('timeSection').style.display = 'none';
+            document.getElementById('clientData').style.display = 'none';
+            document.getElementById('scheduleBtn').disabled = true;
+
+            showMessage('Profissional selecionado! Agora escolha o serviço.', 'info');
+        }
+
+        // Carregar serviços do profissional selecionado
+        async function loadProfessionalServices(professionalId) {
+            try {
+                console.log(`[BOOKING] Carregando serviços do profissional ${professionalId}...`);
+                console.log(`[BOOKING] URL da API: ${API_CONFIG.BASE_URL}/professionals/public/services/${professionalId}`);
+
+                const serviceSelect = document.getElementById('serviceSelect');
+                serviceSelect.innerHTML = '<option value="">Carregando serviços...</option>';
+                serviceSelect.disabled = true;
+
+                const response = await fetch(`${API_CONFIG.BASE_URL}/professionals/public/services/${professionalId}`);
+                console.log(`[BOOKING] Status da resposta: ${response.status}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('[BOOKING] Resposta da API:', result);
+
+                if (!result.success) {
+                    throw new Error(`Erro ao buscar serviços: ${result.message}`);
+                }
+
+                const services = result.services || [];
+                console.log(`[BOOKING] ${services.length} serviços carregados para o profissional`);
+                console.log('[BOOKING] Serviços:', services);
+
+                serviceSelect.innerHTML = '<option value="">Selecione um serviço...</option>';
+
+                if (services.length === 0) {
+                    serviceSelect.innerHTML = '<option value="">Nenhum serviço disponível</option>';
+                    showMessage('Este profissional não possui serviços disponíveis.', 'warning');
+                    return;
+                }
+
+                services.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.id;
+                    option.textContent = `${service.nome} - R$ ${service.preco}`;
+                    option.dataset.duration = service.duracao_minutos;
+                    serviceSelect.appendChild(option);
+                    console.log(`[BOOKING] Adicionando serviço: ${service.nome}`);
+                });
+
+                serviceSelect.disabled = false;
+                console.log('[BOOKING] Serviços carregados com sucesso');
+            } catch (error) {
+                console.error('[BOOKING] Erro ao carregar serviços:', error);
+                document.getElementById('serviceSelect').innerHTML = '<option value="">Erro ao carregar serviços</option>';
+                showMessage('Erro ao carregar serviços. Tente novamente.', 'error');
+            }
+        }
+
+        // Função para atualizar dados de agendamento (mantida para compatibilidade)
+        async function refreshBookingData() {
+            await loadProfessionals();
+        }
+
+
+        // Sistema de Agendamento
+        async function startBookingProcess() {
+            console.log('[BOOKING] Iniciando processo de agendamento...');
+
+            // Verificar se perfil do cliente está carregado
+            if (!clientProfile) {
+                console.log('[BOOKING] Perfil não carregado, carregando...');
+                await loadClientProfile();
+            }
+
+            if (!clientProfile) {
+                showMessage('Erro: não foi possível carregar seu perfil. Tente recarregar a página.', 'error');
+                return;
+            }
+
+            resetForm();
+            await loadProfessionals(); // Carregar profissionais primeiro
+            setMinDate();
+
+            // Auto-refresh a cada 5 minutos
+            if (window.bookingRefreshInterval) {
+                clearInterval(window.bookingRefreshInterval);
+            }
+            window.bookingRefreshInterval = setInterval(async () => {
+                console.log('[BOOKING] Auto-refreshing booking data...');
+                await loadProfessionals();
+            }, 300000); // 5 minutos
+
+            console.log('[BOOKING] Processo de agendamento iniciado com sucesso');
+        }
+
+        function setMinDate() {
+            const today = new Date().toISOString().split('T')[0];
+            appointmentDate.min = today;
+        }
+
+        async function handleServiceChange(event) {
+            const serviceId = event.target.value;
+
+            if (!serviceId) {
+                // Resetar seleção de serviço
+                selectedService = null;
+                document.getElementById('dateSection').style.display = 'none';
+                document.getElementById('timeSection').style.display = 'none';
+                document.getElementById('clientData').style.display = 'none';
+                document.getElementById('scheduleBtn').disabled = true;
+                return;
+            }
+
+            selectedService = serviceId;
+
+            // Mostrar seção de data
+            document.getElementById('dateSection').style.display = 'block';
+
+            // Esconder seções posteriores
+            document.getElementById('timeSection').style.display = 'none';
+            document.getElementById('clientData').style.display = 'none';
+            document.getElementById('scheduleBtn').disabled = true;
+
+            showMessage('Serviço selecionado! Agora escolha a data.', 'info');
+        }
+
+        async function handleDateChange(event) {
+            const date = event.target.value;
+
+            if (!date) {
+                document.getElementById('timeSection').style.display = 'none';
+                document.getElementById('clientData').style.display = 'none';
+                document.getElementById('scheduleBtn').disabled = true;
+                return;
+            }
+
+            selectedDate = date;
+
+            try {
+                console.log(`[BOOKING] Carregando horários para profissional ${selectedProfessional}, data ${date}, serviço ${selectedService}`);
+
+                const response = await fetch(`${API_CONFIG.BASE_URL}/professionals/available-times/${selectedProfessional}?date=${date}&service_id=${selectedService}`);
+                const result = await response.json();
+
+                console.log('[DEBUG] API Response:', result);
+                console.log('[DEBUG] Response status:', response.status);
+
+                const timeSelect = document.getElementById('timeSelect');
+                timeSelect.innerHTML = '<option value="">Selecione um horário...</option>';
+
+                if (result.success) {
+                    console.log('[DEBUG] Response data:', result.data);
+                    const { available, occupied } = result.data;
+                    console.log('[DEBUG] Available times:', available);
+                    console.log('[DEBUG] Occupied times:', occupied);
+                    console.log('[DEBUG] 11:00 in available:', available ? available.includes('11:00') : 'available is null');
+                    console.log('[DEBUG] 11:00 in occupied:', occupied ? occupied.includes('11:00') : 'occupied is null');
+
+                    // LOG PARA DEBUG: Verificar se estamos recebendo occupied times
+                    console.log('[OCCUPIED-TIMES] Horários ocupados recebidos:', occupied);
+                    console.log('[OCCUPIED-TIMES] Quantidade de ocupados:', occupied ? occupied.length : 0);
+
+                    // Filtrar horários do dia atual
+                    let filteredAvailable = available || [];
+                    let filteredOccupied = occupied || [];
+
+                    console.log('[DEBUG] Before filtering - Available:', filteredAvailable.length, 'Occupied:', filteredOccupied.length);
+
+                    if (isToday(date)) {
+                        const now = new Date();
+                        const currentTime = now.getHours() * 60 + now.getMinutes(); // minutos desde meia-noite
+                        console.log('[DEBUG] Filtering for today, current time in minutes:', currentTime);
+
+                        filteredAvailable = (available || []).filter(time => {
+                            const [hours, minutes] = time.split(':').map(Number);
+                            const timeInMinutes = hours * 60 + minutes;
+                            const isFuture = timeInMinutes > currentTime;
+                            console.log(`[DEBUG] Time ${time}: ${timeInMinutes} minutes, isFuture: ${isFuture}`);
+                            return isFuture;
+                        });
+
+                        filteredOccupied = (occupied || []).filter(time => {
+                            const [hours, minutes] = time.split(':').map(Number);
+                            const timeInMinutes = hours * 60 + minutes;
+                            return timeInMinutes > currentTime;
+                        });
+
+                        console.log('[DEBUG] After filtering for today - Available:', filteredAvailable.length, 'Occupied:', filteredOccupied.length);
+
+                        if (filteredAvailable.length === 0 && filteredOccupied.length === 0) {
+                            timeSelect.innerHTML = '<option value="">Nenhum horário disponível hoje</option>';
+                            showMessage('Nenhum horário disponível restante hoje. Escolha outro dia.', 'info');
+                            return;
+                        }
+                    }
+
+                    // Filtrar apenas horários realmente disponíveis (remover ocupados)
+                    const trulyAvailable = filteredAvailable.filter(time => !filteredOccupied.includes(time));
+
+                    console.log('[DEBUG] Horários disponíveis após filtro:', trulyAvailable.length, trulyAvailable);
+                    console.log('[DEBUG] Horários ocupados filtrados:', filteredOccupied.length, filteredOccupied);
+
+                    // Limpar select
+                    timeSelect.innerHTML = '';
+
+                    // Adicionar opção padrão
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = 'Selecione um horário...';
+                    timeSelect.appendChild(defaultOption);
+
+                    // Adicionar apenas horários realmente disponíveis
+                    trulyAvailable.forEach(time => {
+                        const option = document.createElement('option');
+                        option.value = time;
+                        option.textContent = time;
+                        option.disabled = false;
+                        timeSelect.appendChild(option);
+                    });
+
+                    console.log(`[TIME-SELECT] Exibindo ${trulyAvailable.length} horários realmente disponíveis`);
+
+                    // Mostrar seção de horários
+                    document.getElementById('timeSection').style.display = 'block';
+                    timeSelect.disabled = false;
+                    showMessage('Horários carregados com sucesso!', 'success');
+                } else {
+                    console.log('[DEBUG] API returned success=false, message:', result.message);
+                    timeSelect.innerHTML = '<option value="">Nenhum horário disponível</option>';
+                    showMessage(result.message, 'info');
+                }
+
+            } catch (error) {
+                console.error('[DEBUG] Error loading times:', error);
+                document.getElementById('timeSelect').innerHTML = '<option value="">Erro ao carregar horários</option>';
+                showMessage('Erro ao carregar horários. Tente novamente.', 'error');
+            }
+        }
+
+        // Função auxiliar para verificar se a data é hoje
+        function isToday(dateString) {
+            const today = new Date();
+            const selectedDate = new Date(dateString + 'T00:00:00'); // Garantir que seja tratado como data local
+            const todayString = today.getFullYear() + '-' +
+                                String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                                String(today.getDate()).padStart(2, '0');
+            const selectedString = selectedDate.getFullYear() + '-' +
+                                    String(selectedDate.getMonth() + 1).padStart(2, '0') + '-' +
+                                    String(selectedDate.getDate()).padStart(2, '0');
+
+            return todayString === selectedString;
+        }
+
+        /**
+         * Aplica estilos manualmente às opções ocupadas usando data-ocupado
+         * @param {HTMLSelectElement} selectElement - O elemento select a ser estilizado
+         */
+        function applyOccupiedStyles(selectElement) {
+            const occupiedOptions = selectElement.querySelectorAll('option[data-ocupado="true"]');
+
+            occupiedOptions.forEach(option => {
+                // Aplicar estilos manualmente via JavaScript para compatibilidade
+                option.style.color = '#dc3545'; // Vermelho Bootstrap
+                option.style.fontStyle = 'italic';
+
+                // Adicionar evento de hover para fundo vermelho claro
+                option.addEventListener('mouseenter', function() {
+                    this.style.backgroundColor = '#f8d7da'; // Fundo vermelho claro no hover
+                });
+
+                option.addEventListener('mouseleave', function() {
+                    this.style.backgroundColor = ''; // Remover fundo no mouseleave
+                });
+
+                console.log(`[STYLES] Estilos aplicados à opção ocupada: ${option.textContent}`);
+            });
+
+            console.log(`[STYLES] Aplicados estilos a ${occupiedOptions.length} opções ocupadas em ${selectElement.id}`);
+        }
+
+        /**
+         * Preenche um select de horários com base nos arrays available e occupied
+         * @param {string[]} available - Array de horários disponíveis
+         * @param {string[]} occupied - Array de horários ocupados
+         * @param {HTMLSelectElement} timeSelect - Elemento select a ser preenchido
+         */
+        function populateTimeSelect(available, occupied, timeSelect) {
+            // Limpar o select
+            timeSelect.innerHTML = '';
+
+            // Adicionar opção padrão
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Selecione um horário...';
+            timeSelect.appendChild(defaultOption);
+
+            // Criar um Set para busca rápida dos horários ocupados
+            const occupiedSet = new Set(occupied || []);
+
+            // Iterar pelos horários disponíveis
+            (available || []).forEach(time => {
+                const option = document.createElement('option');
+                option.value = time;
+
+                // Verificar se o horário está ocupado
+                if (occupiedSet.has(time)) {
+                    // Horário ocupado: desabilitar e marcar com data-ocupado
+                    option.textContent = `${time} (ocupado)`;
+                    option.disabled = true;
+                    option.setAttribute('data-ocupado', 'true');
+                } else {
+                    // Horário disponível: normal
+                    option.textContent = time;
+                    option.disabled = false;
+                }
+
+                timeSelect.appendChild(option);
+            });
+
+            // Aplicar estilos às opções ocupadas
+            applyOccupiedStyles(timeSelect);
+
+            console.log(`[TIME-SELECT] ${available?.length || 0} horários disponíveis, ${occupied?.length || 0} ocupados em ${timeSelect.id}`);
+        }
+
+        function handleTimeChange(event) {
+            const time = event.target.value;
+
+            if (!time) {
+                selectedTime = null;
+                document.getElementById('clientData').style.display = 'none';
+                document.getElementById('scheduleBtn').disabled = true;
+                return;
+            }
+
+            selectedTime = time;
+            document.getElementById('clientData').style.display = 'block';
+            document.getElementById('scheduleBtn').disabled = false;
+            showMessage('Clique em "Agendar Serviço" para confirmar o agendamento.', 'info');
+        }
+
+        // Agendamento com atualização automática dos dados
+        async function handleScheduleWithUpdate() {
+            if (!validateForm()) {
+                return;
+            }
+
+            // Cliente já está logado, dados vêm do perfil
+
+            // Verificar se salon_id está disponível
+            const salonId = SalonManager.getActiveSalonId();
+            if (!salonId) {
+                showMessage('Erro: salão não identificado. Recarregue a página e tente novamente.', 'error');
+                return;
+            }
+
+            console.log('[SCHEDULE] Enviando agendamento com salon_id:', salonId);
+
+            try {
+                scheduleBtn.disabled = true;
+                scheduleBtn.textContent = 'Agendando...';
+
+                const response = await fetch(`${API_CONFIG.BASE_URL}/appointments`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${TokenManager.get()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        client_id: clientProfile.id,
+                        service_id: parseInt(selectedService),
+                        professional_id: parseInt(selectedProfessional),
+                        salon_id: salonId,
+                        data_hora: `${selectedDate}T${selectedTime}:00`,
+                        valor: 0.0 // Valor será calculado pelo backend
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    console.log('[SCHEDULE] Agendamento realizado com sucesso, atualizando dados...');
+                    showMessage('Agendamento realizado com sucesso!', 'success');
+                    resetForm();
+
+                    // CORREÇÃO: Forçar atualização imediata do dashboard após agendamento
+                    // Remover verificação de mudança de dados para garantir atualização
+                    setTimeout(async () => {
+                        console.log('[SCHEDULE] Forçando atualização completa do dashboard...');
+                        try {
+                            // Fazer requisição para buscar dados atualizados
+                            const updateResponse = await fetch(`${API_CONFIG.BASE_URL}/clients/dashboard-data`, {
+                                headers: {
+                                    'Authorization': `Bearer ${TokenManager.get()}`,
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+
+                            if (updateResponse.ok) {
+                                const newData = await updateResponse.json();
+                                console.log('[SCHEDULE] Novos dados recebidos:', newData.upcoming_appointments?.length || 0, 'agendamentos');
+
+                                // Sempre atualizar cache e re-renderizar, independente de comparação
+                                dashboardData = newData;
+                                lastUpdateTime = new Date();
+
+                                // Re-renderizar interface
+                                await renderizarDashboard(newData);
+
+                                console.log('[SCHEDULE] Dashboard atualizado com sucesso após agendamento');
+                                UI.showSuccess('Dados atualizados automaticamente!');
+                            } else {
+                                console.error('[SCHEDULE] Erro ao atualizar dashboard após agendamento');
+                                // Fallback: tentar atualização normal
+                                await atualizarDashboard();
+                            }
+                        } catch (updateError) {
+                            console.error('[SCHEDULE] Erro na atualização forçada:', updateError);
+                            // Fallback: tentar atualização normal
+                            await atualizarDashboard();
+                        }
+                    }, 500); // Delay reduzido para resposta mais rápida
+
+                } else {
+                    showMessage(result.detail || 'Erro ao realizar agendamento.', 'error');
+                }
+
+            } catch (error) {
+                console.error('[SCHEDULE] Erro no agendamento:', error);
+                showMessage('Erro ao realizar agendamento. Tente novamente.', 'error');
+            } finally {
+                scheduleBtn.disabled = false;
+                scheduleBtn.textContent = 'Agendar Serviço';
+            }
+        }
+
+        function validateForm() {
+            // Cliente já está logado, validação não necessária
+            return true;
+        }
+
+        function resetForm() {
+            // Resetar seleção de profissional
+            document.querySelectorAll('.professional-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            selectedProfessional = null;
+
+            // Esconder todas as seções
+            document.getElementById('servicesSection').style.display = 'none';
+            document.getElementById('dateSection').style.display = 'none';
+            document.getElementById('timeSection').style.display = 'none';
+            document.getElementById('clientData').style.display = 'none';
+
+            // Resetar valores
+            selectedService = null;
+            selectedDate = null;
+            selectedTime = null;
+            document.getElementById('serviceSelect').value = '';
+            document.getElementById('appointmentDate').value = '';
+            document.getElementById('timeSelect').innerHTML = '<option value="">Selecione um horário...</option>';
+            document.getElementById('scheduleBtn').disabled = true;
+
+            // Limpar mensagens após 3 segundos
+            setTimeout(() => {
+                document.getElementById('messages').innerHTML = '';
+            }, 3000);
+        }
+
+        function showMessage(message, type) {
+            const alertClass = type === 'error' ? 'alert-error' :
+                               type === 'success' ? 'alert-success' : 'alert-info';
+
+            messages.innerHTML = `
+                <div class="alert ${alertClass}" style="margin-top: 1rem;">
+                    ${message}
+                </div>
+            `;
+
+            // Auto-remove success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    messages.innerHTML = '';
+                }, 5000);
+            }
+        }
+
+        // Utilitários
+        function getStatusClass(status) {
+            // Handle both enum string format and direct values
+            const normalizedStatus = status.toLowerCase().replace('statusagendamento.', '');
+            switch(normalizedStatus) {
+                case 'confirmado':
+                case 'confirmed': return 'badge-success';
+                case 'concluido':
+                case 'completed': return 'badge-info';
+                case 'cancelado':
+                case 'cancelled': return 'badge-danger';
+                case 'agendado':
+                case 'pending': return 'badge-warning';
+                default: return 'badge-warning';
+            }
+        }
+
+        function getStatusText(status) {
+            // Handle both enum string format and direct values
+            const normalizedStatus = status.toLowerCase().replace('statusagendamento.', '');
+            switch(normalizedStatus) {
+                case 'agendado':
+                case 'pending': return 'Agendado';
+                case 'confirmado':
+                case 'confirmed': return 'Confirmado';
+                case 'concluido':
+                case 'completed': return 'Concluído';
+                case 'cancelado':
+                case 'cancelled': return 'Cancelado';
+                default: return status;
+            }
+        }
+
+        // ============ FUNÇÕES DE SALÃO ============
+
+        // Atualizar exibição do salão no header
+        function updateSalonDisplay(salonInfo) {
+            console.log('[DEBUG] updateSalonDisplay chamada com:', salonInfo);
+
+            if (!salonInfo) {
+                console.warn('[DEBUG] salonInfo é null/undefined, saindo da função');
+                return;
+            }
+
+            const salonNameEl = document.getElementById('salonName');
+            const salonLogoEl = document.getElementById('salonLogo');
+            const salonSubtitleEl = document.getElementById('salonSubtitle');
+            const switchSalonBtn = document.getElementById('switchSalonBtn');
+
+            console.log('[DEBUG] Elementos DOM encontrados:', {
+                salonNameEl: !!salonNameEl,
+                salonLogoEl: !!salonLogoEl,
+                salonSubtitleEl: !!salonSubtitleEl,
+                switchSalonBtn: !!switchSalonBtn
+            });
+
+            // Atualizar nome
+            if (salonNameEl) {
+                salonNameEl.textContent = salonInfo.nome || 'Salão';
+                console.log('[DEBUG] Nome do salão atualizado para:', salonNameEl.textContent);
+            } else {
+                console.error('[DEBUG] Elemento salonName não encontrado!');
+            }
+
+            // Atualizar logo se existir
+            if (salonLogoEl && salonInfo.logo) {
+                salonLogoEl.src = salonInfo.logo;
+                salonLogoEl.style.display = 'block';
+                salonLogoEl.alt = `Logo ${salonInfo.nome}`;
+                console.log('[DEBUG] Logo do salão atualizado');
+            } else if (salonLogoEl) {
+                salonLogoEl.style.display = 'none';
+                console.log('[DEBUG] Logo ocultado (sem logo disponível)');
+            } else {
+                console.error('[DEBUG] Elemento salonLogo não encontrado!');
+            }
+
+            // Atualizar subtítulo
+            if (salonSubtitleEl) {
+                let subtitle = 'Sistema de Agendamentos';
+                if (salonInfo.telefone) {
+                    subtitle += ` • ${salonInfo.telefone}`;
+                }
+                salonSubtitleEl.textContent = subtitle;
+                console.log('[DEBUG] Subtítulo do salão atualizado para:', subtitle);
+            } else {
+                console.error('[DEBUG] Elemento salonSubtitle não encontrado!');
+            }
+
+            // Mostrar botão de troca de salão
+            if (switchSalonBtn) {
+                switchSalonBtn.style.display = 'inline';
+                console.log('[DEBUG] Botão de troca de salão exibido');
+            } else {
+                console.error('[DEBUG] Elemento switchSalonBtn não encontrado!');
+            }
+
+            console.log('[SALON] Exibição do salão atualizada:', salonInfo);
+        }
+
+        // ============ FUNÇÕES DE CANCELAMENTO DE AGENDAMENTOS ============
+
+        /**
+         * Verifica se um agendamento pode ser cancelado
+         * @param {Object} appointment - Dados do agendamento
+         * @returns {boolean} - True se pode ser cancelado
+         */
+        function canCancelAppointment(appointment) {
+            // Não pode cancelar agendamentos já cancelados ou concluídos
+            const status = appointment.status?.toLowerCase();
+            if (status === 'cancelado' || status === 'cancelled' || status === 'concluido' || status === 'completed') {
+                return false;
+            }
+
+            // Não pode cancelar agendamentos que já passaram (data/hora no passado)
+            const appointmentDateTime = new Date(appointment.data_hora || appointment.appointment_date);
+            const now = new Date();
+            if (appointmentDateTime <= now) {
+                return false;
+            }
+
+            // Só pode cancelar agendamentos agendados ou confirmados
+            return status === 'agendado' || status === 'confirmado' || status === 'scheduled' || status === 'confirmed';
+        }
+
+        /**
+         * Cancela um agendamento com confirmação do usuário
+         * @param {number} appointmentId - ID do agendamento a ser cancelado
+         */
+        async function cancelAppointment(appointmentId) {
+            console.log(`[CANCEL] Iniciando cancelamento do agendamento ${appointmentId}`);
+
+            // Confirmação do usuário
+            const confirmed = confirm('Tem certeza que deseja cancelar este agendamento? Esta ação não pode ser desfeita.');
+            if (!confirmed) {
+                console.log('[CANCEL] Cancelamento abortado pelo usuário');
+                return;
+            }
+
+            try {
+                // Mostrar indicador de carregamento
+                UI.showLoading(document.body);
+
+                console.log(`[CANCEL] Fazendo requisição para cancelar agendamento ${appointmentId}`);
+
+                // Fazer requisição para o backend
+                const response = await fetch(`${API_CONFIG.BASE_URL}/appointments/${appointmentId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${TokenManager.get()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        status: 'cancelado'
+                    })
+                });
+
+                console.log(`[CANCEL] Status da resposta: ${response.status}`);
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ detail: 'Erro desconhecido' }));
+                    throw new Error(errorData.detail || `Erro HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('[CANCEL] Cancelamento realizado com sucesso:', result);
+
+                // Mostrar mensagem de sucesso
+                UI.showSuccess('Agendamento cancelado com sucesso!');
+
+                // Atualizar dados do dashboard
+                console.log('[CANCEL] Atualizando dados do dashboard...');
+                await atualizarDashboard(true); // Forçar atualização
+
+                console.log('[CANCEL] Cancelamento concluído com sucesso');
+
+            } catch (error) {
+                console.error('[CANCEL] Erro ao cancelar agendamento:', error);
+                UI.showError(`Erro ao cancelar agendamento: ${error.message}`);
+            } finally {
+                // Esconder indicador de carregamento
+                UI.hideLoading(document.body);
+            }
+        }
+
+        // Funções de salão não aplicáveis para clientes (eles só podem usar seu salão cadastrado)
+    </script>
+
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-success { background-color: var(--success-color); color: white; }
+        .badge-warning { background-color: var(--warning-color); color: black; }
+        .badge-danger { background-color: var(--error-color); color: white; }
+        .badge-info { background-color: var(--info-color); color: white; }
+
+        /* Estilos para o sistema de agendamento */
+        .grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .grid-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        /* Responsividade da logo */
+        @media (max-width: 768px) {
+            .logo-section img {
+                height: 30px;
+                max-width: 30px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo-section img {
+                height: 25px;
+                max-width: 25px;
+            }
+        }
+
+        /* Estilos para cards de profissionais */
+        .professionals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .professional-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .professional-card:hover {
+            border-color: #007bff;
+            box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+        }
+
+        .professional-card.selected {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+            box-shadow: 0 4px 12px rgba(0,123,255,0.25);
+        }
+
+        .professional-card .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 2rem;
+            color: white;
+            font-weight: bold;
+        }
+
+        .professional-card h4 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+        }
+
+        .professional-card .specialty {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .professionals-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .professional-card {
+                padding: 1rem;
+            }
+
+            .professional-card .avatar {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Nota: Os estilos para horários ocupados são aplicados via JavaScript
+           para garantir compatibilidade com todos os navegadores */
+
+        /* Estilos para cards de agendamentos responsivos */
+        .appointments-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .appointment-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .appointment-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .appointment-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .appointment-service {
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .appointment-status {
+            flex-shrink: 0;
+        }
+
+        .appointment-card-body {
+            padding: 1rem;
+        }
+
+        .appointment-detail {
+            margin-bottom: 0.5rem;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .appointment-detail:last-child {
+            margin-bottom: 0;
+        }
+
+        .appointment-detail strong {
+            color: #333;
+            margin-right: 0.5rem;
+        }
+
+        /* Responsividade para tablets */
+        @media (max-width: 768px) {
+            .appointment-card-header {
+                padding: 0.75rem;
+            }
+
+            .appointment-service {
+                font-size: 1rem;
+            }
+
+            .appointment-card-body {
+                padding: 0.75rem;
+            }
+        }
+
+        /* Responsividade para celulares pequenos */
+        @media (max-width: 480px) {
+            .appointment-card-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .appointment-service {
+                font-size: 0.95rem;
+            }
+
+            .appointment-card-body {
+                padding: 0.75rem;
+            }
+
+            .appointment-detail {
+                font-size: 0.85rem;
+            }
+        }
+
+    </style>
+    <script>
+        window.addEventListener('load', () => {
+            const elements = document.querySelectorAll('.fade-in');
+            elements.forEach((el, index) => {
+                // Adiciona a classe com um pequeno atraso para cada elemento (opcional)
+                setTimeout(() => {
+                    el.classList.add('visible');
+                }, index * 200); // 200ms de diferença entre cada elemento
+            });
+        });
+    </script>
+</body>
+
+</html>

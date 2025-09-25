@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Horários</title>
+    <link rel="stylesheet" href="/frontend/assets/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Teste da Seção de Horários</h1>
+
+        <div class="card fade-in">
+            <h2>Horários de Funcionamento</h2>
+
+            <form id="businessHoursForm">
+                <!-- Segunda-feira -->
+                <div class="form-group">
+                    <label class="form-label">Segunda-feira</label>
+                    <div class="grid grid-2">
+                        <div>
+                            <label>Abertura</label>
+                            <input type="time" id="segunda_abertura" class="form-control" value="08:00">
+                        </div>
+                        <div>
+                            <label>Fechamento</label>
+                            <input type="time" id="segunda_fechamento" class="form-control" value="18:00">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Domingo -->
+                <div class="form-group">
+                    <label class="form-label">Domingo</label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="domingo_fechado" onchange="toggleDomingo()">
+                        <label for="domingo_fechado">Fechado aos domingos</label>
+                    </div>
+                    <div class="grid grid-2" id="domingo_hours" style="display: none;">
+                        <div>
+                            <label>Abertura</label>
+                            <input type="time" id="domingo_abertura" class="form-control">
+                        </div>
+                        <div>
+                            <label>Fechamento</label>
+                            <input type="time" id="domingo_fechamento" class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões -->
+                <div class="d-flex gap-1 mt-3">
+                    <button type="button" class="btn btn-secondary" onclick="loadCurrentHours()">
+                        Carregar Horários Atuais
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Mensagens -->
+        <div id="businessHoursMessages"></div>
+    </div>
+
+    <script src="/frontend/config.js"></script>
+    <script>
+        // Simular token JWT para teste
+        localStorage.setItem('jwt_token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0IiwiZXhwIjoxNzU4MzczNjQxLCJyb2xlIjoiZG9ubyIsImlhdCI6MTc1ODM3MTg0MX0.dh6Dt2QywAxoeoMUXSHDh12eQb1-fKmkLT-2K4r_jKo');
+
+        // Função para alternar visibilidade dos horários do domingo
+        function toggleDomingo() {
+            const domingoFechado = document.getElementById('domingo_fechado');
+            const hoursDiv = document.getElementById('domingo_hours');
+
+            if (!domingoFechado || !hoursDiv) {
+                console.warn('Elementos do domingo não encontrados');
+                return;
+            }
+
+            const fechado = domingoFechado.checked;
+            hoursDiv.style.display = fechado ? 'none' : 'grid';
+        }
+
+        // Carregar horários atuais
+        async function loadCurrentHours() {
+            console.log('Função loadCurrentHours() chamada');
+
+            const businessHoursForm = document.getElementById('businessHoursForm');
+            if (!businessHoursForm) {
+                console.error('Formulário de horários não encontrado');
+                showBusinessHoursMessage('Erro: Formulário de horários não encontrado na página.', 'error');
+                return;
+            }
+
+            try {
+                // Obter empresa ID do token JWT
+                const token = localStorage.getItem('jwt_token');
+                if (!token) {
+                    showBusinessHoursMessage('Token de autenticação não encontrado. Faça login novamente.', 'error');
+                    return;
+                }
+
+                console.log('Token JWT encontrado:', token.substring(0, 50) + '...');
+
+                let empresaId;
+                try {
+                    // Decodificar token JWT para obter empresa ID
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    empresaId = payload.sub || payload.user_id || payload.id;
+
+                    console.log('Payload do token:', payload);
+                    console.log('Empresa ID obtido:', empresaId);
+
+                    if (!empresaId) {
+                        throw new Error('Empresa ID não encontrado no token');
+                    }
+                } catch (error) {
+                    console.error('Erro ao decodificar token JWT:', error);
+                    showBusinessHoursMessage('Erro na autenticação. Faça login novamente.', 'error');
+                    return;
+                }
+
+                console.log('Fazendo requisição para:', `${API_CONFIG.BASE_URL}/empresa/${empresaId}/horarios`);
+
+                const response = await fetch(`${API_CONFIG.BASE_URL}/empresa/${empresaId}/horarios`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('Status da resposta:', response.status);
+                console.log('Headers da resposta:', Object.fromEntries(response.headers.entries()));
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Dados recebidos:', data);
+
+                    // Verificar se há dados válidos
+                    if (data && typeof data === 'object') {
+                        // Preencher campos com dados atuais
+                        const dias = ['segunda'];
+
+                        dias.forEach(dia => {
+                            const aberturaInput = document.getElementById(`${dia}_abertura`);
+                            const fechamentoInput = document.getElementById(`${dia}_fechamento`);
+
+                            if (aberturaInput && data[dia]?.abertura) {
+                                aberturaInput.value = data[dia].abertura;
+                                console.log(`Campo ${dia}_abertura preenchido com:`, data[dia].abertura);
+                            } else if (aberturaInput) {
+                                aberturaInput.value = '';
+                            }
+
+                            if (fechamentoInput && data[dia]?.fechamento) {
+                                fechamentoInput.value = data[dia].fechamento;
+                                console.log(`Campo ${dia}_fechamento preenchido com:`, data[dia].fechamento);
+                            } else if (fechamentoInput) {
+                                fechamentoInput.value = '';
+                            }
+                        });
+
+                        // Domingo
+                        const domingoFechado = document.getElementById('domingo_fechado');
+                        const domingoAbertura = document.getElementById('domingo_abertura');
+                        const domingoFechamento = document.getElementById('domingo_fechamento');
+
+                        if (domingoFechado && domingoAbertura && domingoFechamento) {
+                            if (data.domingo?.abertura && data.domingo?.fechamento) {
+                                domingoFechado.checked = false;
+                                domingoAbertura.value = data.domingo.abertura;
+                                domingoFechamento.value = data.domingo.fechamento;
+                                toggleDomingo();
+                                console.log('Domingo preenchido com horários');
+                            } else {
+                                domingoFechado.checked = true;
+                                domingoAbertura.value = '';
+                                domingoFechamento.value = '';
+                                toggleDomingo();
+                                console.log('Domingo marcado como fechado');
+                            }
+                        }
+
+                        showBusinessHoursMessage('Horários carregados com sucesso!', 'success');
+                    } else {
+                        showBusinessHoursMessage('Nenhum horário cadastrado. Configure os horários de funcionamento.', 'info');
+                    }
+                } else if (response.status === 404) {
+                    showBusinessHoursMessage('Nenhum horário cadastrado. Configure os horários de funcionamento.', 'info');
+                } else {
+                    const errorText = await response.text();
+                    console.error('Erro na resposta:', errorText);
+                    let errorData;
+                    try {
+                        errorData = JSON.parse(errorText);
+                    } catch (e) {
+                        errorData = { detail: errorText };
+                    }
+                    showBusinessHoursMessage(errorData.detail || `Erro ao carregar horários atuais (${response.status}).`, 'error');
+                }
+
+            } catch (error) {
+                console.error('Erro ao carregar horários:', error);
+                showBusinessHoursMessage('Erro ao carregar horários. Verifique sua conexão.', 'error');
+            }
+        }
+
+        // Mostrar mensagens
+        function showBusinessHoursMessage(message, type) {
+            const messages = document.getElementById('businessHoursMessages');
+
+            if (!messages) {
+                console.warn('Container de mensagens não encontrado');
+                return;
+            }
+
+            const alertClass = type === 'error' ? 'alert-error' :
+                                type === 'success' ? 'alert-success' : 'alert-info';
+
+            messages.innerHTML = `
+                <div class="alert ${alertClass}" style="margin-top: 1rem;">
+                    ${message}
+                </div>
+            `;
+
+            console.log(`Mensagem ${type}:`, message);
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Página de teste carregada');
+            toggleDomingo(); // Estado inicial
+        });
+    </script>
+
+    <style>
+        .alert {
+            padding: 1rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .checkbox-group {
+            margin-bottom: 1rem;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 0.5rem;
+        }
+
+        input[type="time"] {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 0.25rem;
+            font-size: 1rem;
+        }
+input[type="time"]:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+</style>
+<script>
+window.addEventListener('load', () => {
+    const elements = document.querySelectorAll('.fade-in');
+    elements.forEach((el, index) => {
+        // Adiciona a classe com um pequeno atraso para cada elemento (opcional)
+        setTimeout(() => {
+            el.classList.add('visible');
+        }, index * 200); // 200ms de diferença entre cada elemento
+    });
+});
+</script>
+</body>
+
+</html>

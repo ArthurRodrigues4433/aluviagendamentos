@@ -1,0 +1,208 @@
+# Arquivos compilados / otimizados / DLL
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Extensões C
+*.so
+
+# Distribuição / empacotamento
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Geralmente estes arquivos são escritos por um script Python a partir de um template
+#  antes do PyInstaller construir o exe, para injetar data/outras infos nele.
+*.manifest
+*.spec
+
+# Logs do instalador
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Relatórios de teste unitário / cobertura
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Traduções
+*.mo
+*.pot
+
+# Coisas do Django:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Coisas do Flask:
+instance/
+.webassets-cache
+
+# Coisas do Scrapy:
+.scrapy
+
+# Documentação Sphinx
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+#   De acordo com pypa/pipenv#598, é recomendado incluir Pipfile.lock no controle de versão.
+#   No entanto, em caso de colaboração, se houver dependências específicas da plataforma ou
+#   dependências que não têm suporte multiplataforma, o pipenv pode instalar dependências
+#   que não funcionam, ou não instalar todas as dependências necessárias.
+#Pipfile.lock
+
+# PEP 582; usado por e.g. github.com/David-OConnor/pyflow
+__pypackages__/
+
+# Coisas do Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Arquivos analisados pelo SageMath
+*.sage.py
+
+# Ambientes
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Configurações do projeto Spyder
+.spyderproject
+.spyproject
+
+# Configurações do projeto Rope
+.ropeproject
+
+# Documentação mkdocs
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Verificador de tipos Pyre
+.pyre/
+
+# Arquivos específicos do projeto Aluvi
+# Banco de dados
+*.db
+*.sqlite
+*.sqlite3
+aluvi.db
+data/aluvi.db
+data/aluvi_backup_*.db
+
+# Logs do sistema
+logs/
+*.log
+error.log
+aluvi.log
+
+# Arquivos de configuração sensíveis
+.env.local
+.env.production
+.env.staging
+
+# Arquivos temporários
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Backups
+*.bak
+*.backup
+backups/
+
+# Node.js (se usado no futuro)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build do frontend
+dist/
+dist-ssr/
+*.local
+
+# Diretórios de editor
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Arquivos de sistema
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+# Uploads de usuários
+uploads/

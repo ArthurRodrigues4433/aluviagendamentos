@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://public-frontend-cos.metadl.com/mgx/img/favicon.png" type="image/png">
+    <title>Login - SaaS Agendamento</title>
+    <link rel="stylesheet" href="/frontend/assets/styles.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="/" class="logo">✨ Aluvi Agendamentos</a>
+                <ul class="nav-links">
+                    <li><a href="/">Início</a></li>
+                    <li><a href="/register.html">Cadastro</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <div style="max-width: 400px; margin: 2rem auto;">
+            
+            <!-- Seleção de Tipo de Login -->
+            <div class="card mb-3 fade-in">
+                <div class="card-header text-center">
+                    <h1 class="card-title">Fazer Login</h1>
+                </div>
+                
+                <div class="d-flex gap-1 mb-2">
+                    <button id="ownerLoginBtn" class="btn btn-primary" style="flex: 1;">
+                        Login Dono
+                    </button>
+                    <button id="clientLoginBtn" class="btn btn-outline" style="flex: 1;">
+                        Login Cliente
+                    </button>
+                </div>
+                
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="email" class="form-label">E-mail</label>
+                        <input type="email" id="email" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password" class="form-label">Senha</label>
+                        <input type="password" id="password" class="form-control" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        Entrar
+                    </button>
+                </form>
+
+                <div class="text-center mt-2">
+                    <p>Não tem uma conta? <a href="/register.html">Cadastre-se aqui</a></p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="/frontend/config.js"></script>
+    <script src="/frontend/app.js"></script>
+    <script>
+        let isOwnerLogin = true;
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicialização sem redirecionamento automático
+            setupEventListeners();
+            updateLoginType();
+        });
+
+        // Configurar event listeners
+        function setupEventListeners() {
+            // Botões de seleção de tipo de login
+            document.getElementById('ownerLoginBtn').addEventListener('click', () => {
+                isOwnerLogin = true;
+                updateLoginType();
+            });
+
+            document.getElementById('clientLoginBtn').addEventListener('click', () => {
+                isOwnerLogin = false;
+                updateLoginType();
+            });
+
+            // Submit do formulário
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        }
+
+        // Atualizar tipo de login
+        function updateLoginType() {
+            const ownerBtn = document.getElementById('ownerLoginBtn');
+            const clientBtn = document.getElementById('clientLoginBtn');
+
+            if (isOwnerLogin) {
+                ownerBtn.className = 'btn btn-primary';
+                clientBtn.className = 'btn btn-outline';
+            } else {
+                ownerBtn.className = 'btn btn-outline';
+                clientBtn.className = 'btn btn-primary';
+            }
+        }
+
+        // Processar login
+        async function handleLogin(event) {
+            event.preventDefault();
+
+            UI.clearAlerts();
+
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            // Validações básicas
+            if (!email) {
+                UI.showError('Por favor, informe seu email.');
+                document.getElementById('email').focus();
+                return;
+            }
+
+            if (!password) {
+                UI.showError('Por favor, informe sua senha.');
+                document.getElementById('password').focus();
+                return;
+            }
+
+            // Validação de formato de email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                UI.showError('Por favor, informe um email válido.');
+                document.getElementById('email').focus();
+                return;
+            }
+
+            try {
+                // Desabilitar botão durante o login
+                const submitBtn = event.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.textContent = 'Entrando...';
+                submitBtn.disabled = true;
+
+                console.log(`[LOGIN] Tentando login como ${isOwnerLogin ? 'dono' : 'cliente'}: ${email}`);
+
+                const response = await api.login(email, password, isOwnerLogin);
+
+                console.log('[LOGIN] Resposta do servidor:', response);
+
+                // Verificar se o token foi realmente armazenado
+                if (!TokenManager.get()) {
+                    throw new Error('Token não foi armazenado corretamente');
+                }
+
+                // Verificar se conseguimos extrair informações do token
+                const tokenRole = TokenManager.getRole();
+                console.log(`[LOGIN] Role extraído do token: ${tokenRole}`);
+
+                // Verificar se é primeiro login para donos/admins
+                if (tokenRole === 'dono' || tokenRole === 'admin') {
+                    try {
+                        // Buscar informações do usuário para verificar primeiro login
+                        const userInfo = await api.request('/auth/me');
+                        console.log('[LOGIN] Informações do usuário:', userInfo);
+
+                        if (userInfo.primeiro_login || userInfo.senha_temporaria) {
+                            console.log('[LOGIN] Primeiro login detectado, redirecionando para troca de senha');
+                            // Armazenar flag de primeiro login
+                            sessionStorage.setItem('forcePasswordChange', 'true');
+                            window.location.href = 'change-password.html';
+                            return;
+                        }
+                    } catch (error) {
+                        console.warn('[LOGIN] Erro ao verificar primeiro login:', error);
+                        // Continua normalmente se falhar
+                    }
+
+                    // Redirecionar baseado no role
+                    if (tokenRole === 'admin') {
+                        console.log('[LOGIN] Redirecionando para dashboard do admin');
+                        window.location.href = 'dashboard-admin.html';
+                    } else {
+                        console.log('[LOGIN] Redirecionando para dashboard do dono');
+                        window.location.href = 'dashboard-dono.html';
+                    }
+                } else if (tokenRole === 'cliente') {
+                    console.log('[LOGIN] Redirecionando para seleção de salão');
+                    window.location.href = 'salon-selection.html';
+                } else {
+                    console.warn('[LOGIN] Role desconhecido, redirecionando para dashboard do cliente');
+                    window.location.href = 'dashboard-cliente.html';
+                }
+
+            } catch (error) {
+                console.error('[LOGIN] Erro no login:', error);
+
+                // Melhorar tratamento de mensagens de erro
+                let errorMessage = 'Erro ao fazer login. Tente novamente.';
+
+                if (error.message) {
+                    if (error.message.includes('422') || error.message.includes('Unprocessable Entity')) {
+                        errorMessage = 'Dados inválidos. Verifique se o email e senha estão corretos.';
+                    } else if (error.message.includes('401') || error.message.includes('Email ou senha inválidos')) {
+                        errorMessage = 'Email ou senha incorretos. Verifique suas credenciais.';
+                    } else if (error.message.includes('Sessão expirada')) {
+                        errorMessage = 'Sua sessão expirou. Faça login novamente.';
+                    } else if (error.message.includes('Erro de conexão')) {
+                        errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+                    } else if (error.message.includes('500') || error.message.includes('Erro interno')) {
+                        errorMessage = 'Erro interno do servidor. Tente novamente em alguns minutos.';
+                    } else if (error.message.includes('Token não foi armazenado')) {
+                        errorMessage = 'Erro ao processar resposta do servidor. Tente novamente.';
+                    } else {
+                        errorMessage = error.message;
+                    }
+                }
+
+                UI.showError(errorMessage);
+
+                // Reabilitar botão
+                const submitBtn = event.target.querySelector('button[type="submit"]');
+                submitBtn.textContent = 'Entrar';
+                submitBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+
+</html>

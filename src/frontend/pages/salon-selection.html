@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://public-frontend-cos.metadl.com/mgx/img/favicon.png" type="image/png">
+    <title>Selecionar Salão - SaaS Agendamento</title>
+    <link rel="stylesheet" href="/frontend/assets/styles.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="/" class="logo">✨ Aluvi Agendamentos</a>
+                <ul class="nav-links">
+                    <li><a href="/">Início</a></li>
+                    <li><a href="/login.html">Login</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <div style="max-width: 800px; margin: 2rem auto;">
+
+            <!-- Título e descrição -->
+            <div class="card mb-3 fade-in">
+                <div class="text-center">
+                    <h1>Escolha seu Salão</h1>
+                    <p class="text-muted">Selecione o salão onde deseja agendar seus serviços</p>
+                </div>
+            </div>
+
+            <!-- Campo de pesquisa -->
+            <div class="card mb-3 fade-in">
+                <div class="form-group">
+                    <label class="form-label">Buscar Salão</label>
+                    <input type="text" id="salonSearch" class="form-control" placeholder="Digite o nome do salão..." onkeyup="filterSalons()">
+                    <small class="text-muted">Digite para filtrar os salões disponíveis</small>
+                </div>
+            </div>
+
+            <!-- Mensagens de erro -->
+            <div id="errorMessages" style="display: none;"></div>
+
+            <!-- Loading -->
+            <div id="loadingSalons" class="card">
+                <div class="text-center" style="padding: 2rem;">
+                    <div class="loading">Carregando salões disponíveis...</div>
+                </div>
+            </div>
+
+            <!-- Lista de Salões -->
+            <div id="salonsList" style="display: none;">
+                <div class="grid grid-1" id="salonsGrid">
+                    <!-- Salões serão inseridos aqui dinamicamente -->
+                </div>
+            </div>
+
+            <!-- Nenhum salão disponível -->
+            <div id="noSalons" class="card" style="display: none;">
+                <div class="text-center" style="padding: 2rem;">
+                    <h3>Nenhum salão disponível</h3>
+                    <p class="text-muted">No momento não há salões disponíveis para agendamento.</p>
+                    <p class="text-muted">Tente novamente mais tarde ou entre em contato conosco.</p>
+                    <button class="btn btn-outline" onclick="window.location.href='/'" style="margin-top: 1rem;">
+                        Voltar ao Início
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="/frontend/config.js"></script>
+    <script src="/frontend/app.js"></script>
+    <script>
+        // Variável global para armazenar todos os salões
+        let allSalons = [];
+        let lastSalonData = null; // Para detectar mudanças
+        let pollingInterval = null; // Para polling de atualizações
+
+        // Verificação de autenticação
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('[SALON-SELECTION] Inicializando página de seleção de salão...');
+
+            // Verificar se usuário está autenticado
+            if (!TokenManager.isValid()) {
+                console.warn('[SALON-SELECTION] Usuário não autenticado, redirecionando para login');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Verificar se veio de um link específico com salon_id
+            const urlSalonId = SalonManager.getSalonIdFromURL();
+            if (urlSalonId) {
+                console.log(`[SALON-SELECTION] Vindo de link específico, definindo salão ${urlSalonId} e redirecionando...`);
+                try {
+                    await SalonManager.switchSalon(parseInt(urlSalonId));
+                    window.location.href = 'dashboard-cliente.html';
+                    return;
+                } catch (error) {
+                    console.error('[SALON-SELECTION] Erro ao definir salão do link:', error);
+                    UI.showError('Erro ao acessar o salão solicitado.');
+                }
+            }
+
+            // Sempre mostrar seleção de salões para clientes (não pular se tem salão ativo)
+            console.log('[SALON-SELECTION] Mostrando seleção de salões...');
+
+            // Carregar salões disponíveis
+            await loadAvailableSalons();
+        });
+
+        // Limpar polling quando a página for fechada
+        window.addEventListener('beforeunload', function() {
+            console.log('[SALON-SELECTION] Página sendo fechada, parando polling...');
+            stopRealtimePolling();
+        });
+
+        // Carregar lista de salões disponíveis
+        async function loadAvailableSalons() {
+            try {
+                console.log('[SALON-SELECTION] Carregando salões disponíveis...');
+                console.log('[SALON-SELECTION] Timestamp:', new Date().toISOString());
+
+                const salons = await SalonManager.loadAvailableSalons();
+                console.log('[SALON-SELECTION] Salões recebidos da API:', salons);
+                console.log('[SALON-SELECTION] Número de salões:', salons ? salons.length : 0);
+
+                if (!salons || salons.length === 0) {
+                    console.log('[SALON-SELECTION] Nenhum salão encontrado, mostrando mensagem');
+                    showNoSalons();
+                    return;
+                }
+
+                // Verificar se os dados dos salões mudaram (usando campos customizados)
+                const currentSalonData = JSON.stringify(salons.map(s => ({
+                    id: s.id,
+                    cardDisplayName: s.cardDisplayName,
+                    cardLocation: s.cardLocation,
+                    cardDescription: s.cardDescription,
+                    cardLogo: s.cardLogo
+                })));
+                console.log('[SALON-SELECTION] Dados atuais dos salões (campos customizados):', currentSalonData);
+
+                // Armazenar todos os salões para filtragem
+                allSalons = salons;
+
+                displaySalons(salons);
+
+                // Iniciar polling para detectar mudanças em tempo real
+                startRealtimePolling();
+
+            } catch (error) {
+                console.error('[SALON-SELECTION] Erro ao carregar salões:', error);
+                console.error('[SALON-SELECTION] Detalhes do erro:', {
+                    message: error.message,
+                    stack: error.stack,
+                    timestamp: new Date().toISOString()
+                });
+                showError('Erro ao carregar salões disponíveis. Tente recarregar a página.');
+            }
+        }
+
+        // Verificar se os dados dos salões mudaram
+        async function checkForSalonUpdates() {
+            try {
+                console.log('[SALON-SELECTION] Verificando atualizações nos dados dos salões...');
+
+                const salons = await SalonManager.loadAvailableSalons();
+                if (!salons) return;
+
+                const currentSalonData = JSON.stringify(salons.map(s => ({
+                    id: s.id,
+                    cardDisplayName: s.cardDisplayName,
+                    cardLocation: s.cardLocation,
+                    cardDescription: s.cardDescription,
+                    cardLogo: s.cardLogo
+                })));
+
+                if (lastSalonData && lastSalonData !== currentSalonData) {
+                    console.log('[SALON-SELECTION] 🔄 DETECTADA MUDANÇA NOS DADOS DOS SALÕES!');
+                    console.log('[SALON-SELECTION] Dados anteriores:', lastSalonData);
+                    console.log('[SALON-SELECTION] Dados atuais:', currentSalonData);
+
+                    // Atualizar dados e re-renderizar
+                    allSalons = salons;
+                    lastSalonData = currentSalonData;
+                    displaySalons(salons);
+
+                    console.log('[SALON-SELECTION] ✅ Cards atualizados automaticamente');
+                } else if (!lastSalonData) {
+                    // Primeira vez, apenas armazenar
+                    lastSalonData = currentSalonData;
+                    console.log('[SALON-SELECTION] Dados iniciais armazenados para comparação');
+                } else {
+                    console.log('[SALON-SELECTION] Nenhum mudança detectada nos dados dos salões');
+                }
+
+            } catch (error) {
+                console.error('[SALON-SELECTION] Erro ao verificar atualizações:', error);
+            }
+        }
+
+        // Iniciar polling para atualizações em tempo real
+        function startRealtimePolling() {
+            console.log('[SALON-SELECTION] Iniciando polling para atualizações em tempo real...');
+
+            // Verificar a cada 30 segundos
+            pollingInterval = setInterval(checkForSalonUpdates, 30000);
+
+            console.log('[SALON-SELECTION] Polling iniciado - verificando a cada 30 segundos');
+        }
+
+        // Parar polling
+        function stopRealtimePolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+                console.log('[SALON-SELECTION] Polling parado');
+            }
+        }
+
+        // Exibir lista de salões
+        function displaySalons(salons) {
+            console.log('[SALON-SELECTION] Renderizando cards de salões...');
+            console.log('[SALON-SELECTION] Número de salões a renderizar:', salons.length);
+
+            const salonsGrid = document.getElementById('salonsGrid');
+
+            // Limpar conteúdo anterior
+            const previousCount = salonsGrid.children.length;
+            console.log('[SALON-SELECTION] Limpando grid anterior com', previousCount, 'elementos');
+            salonsGrid.innerHTML = '';
+
+            // Criar cards para cada salão
+            salons.forEach((salon, index) => {
+                console.log(`[SALON-SELECTION] Criando card ${index + 1}/${salons.length} para salão:`, salon.nome);
+                const salonCard = createSalonCard(salon);
+                salonsGrid.appendChild(salonCard);
+            });
+
+            // Mostrar lista e esconder loading
+            document.getElementById('loadingSalons').style.display = 'none';
+            document.getElementById('salonsList').style.display = 'block';
+
+            console.log('[SALON-SELECTION] Cards renderizados com sucesso. Total de cards:', salonsGrid.children.length);
+            console.log('[SALON-SELECTION] Timestamp da renderização:', new Date().toISOString());
+        }
+
+        // Criar card do salão
+        function createSalonCard(salon) {
+            console.log('[SALON-SELECTION] Criando card para salão:', salon);
+            console.log('[SALON-SELECTION] ID do salão:', salon.id);
+
+            const card = document.createElement('div');
+            card.className = 'card salon-card fade-in';
+            card.onclick = () => selectSalon(salon.id);
+
+            // Usar apenas campos da aparência customizada (subaba "aparência do card")
+            // Estes campos vêm da configuração específica do dono, não dos campos gerais da empresa
+            const displayName = salon.cardDisplayName || salon.nome || 'Nome não definido';
+            const displayLocation = salon.cardLocation || salon.endereco || 'Localização não definida';
+            const displayDescription = salon.cardDescription || salon.descricao || '';
+            const displayLogo = salon.cardLogo || salon.logo;
+
+            // Log dos campos customizados que serão usados no card
+            console.log(`[SALON-SELECTION] Campos customizados para salão ${salon.id}:`, {
+                displayName,
+                displayLocation,
+                displayDescription,
+                displayLogo,
+                timestamp: new Date().toISOString()
+            });
+
+            // Verificar se os campos mudaram desde a última renderização
+            const cardData = {
+                displayName,
+                displayLocation,
+                displayDescription,
+                displayLogo
+            };
+            console.log(`[SALON-SELECTION] Dados que serão renderizados no card ${salon.id}:`, cardData);
+
+            card.innerHTML = `
+                <div class="salon-card-content">
+                    <div class="salon-header">
+                        ${displayLogo ? `<img src="${displayLogo}" alt="Logo ${displayName}" class="salon-logo" onerror="console.log('[SALON-SELECTION] Erro ao carregar logo para salão ${salon.id}')">` : '<div class="salon-logo-placeholder">🏪</div>'}
+                        <div class="salon-info">
+                            <h3 class="salon-name">${displayName}</h3>
+                            <p class="salon-address">${displayLocation}</p>
+                        </div>
+                    </div>
+                    <div class="salon-details">
+                        ${displayDescription ? `<p class="salon-description">${displayDescription}</p>` : ''}
+                        <div class="salon-actions">
+                            <button class="btn btn-primary" onclick="event.stopPropagation(); selectSalon(${salon.id})">
+                                Selecionar Este Salão
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            console.log(`[SALON-SELECTION] Card criado para salão ${salon.id} com nome customizado: ${displayName}`);
+            return card;
+        }
+
+        // Selecionar salão
+        async function selectSalon(salonId) {
+            try {
+                console.log(`[SALON-SELECTION] Selecionando salão ${salonId}...`);
+
+                // Mostrar loading
+                UI.showInfo('Configurando salão...');
+
+                // Definir salão ativo
+                await SalonManager.switchSalon(salonId);
+
+                // Redirecionar para dashboard
+                console.log('[SALON-SELECTION] Salão selecionado com sucesso, redirecionando...');
+                window.location.href = 'dashboard-cliente.html';
+
+            } catch (error) {
+                console.error('[SALON-SELECTION] Erro ao selecionar salão:', error);
+                UI.showError('Erro ao selecionar salão. Tente novamente.');
+            }
+        }
+
+        // Mostrar mensagem de nenhum salão disponível
+        function showNoSalons() {
+            document.getElementById('loadingSalons').style.display = 'none';
+            document.getElementById('noSalons').style.display = 'block';
+        }
+
+        // Mostrar erro
+        function showError(message) {
+            document.getElementById('loadingSalons').style.display = 'none';
+            const errorDiv = document.getElementById('errorMessages');
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = `
+                <div class="alert alert-error" style="margin-bottom: 1rem;">
+                    <strong>Erro</strong><br>
+                    ${message}
+                </div>
+            `;
+        }
+
+        // Filtrar salões por nome
+        function filterSalons() {
+            const searchTerm = document.getElementById('salonSearch').value.toLowerCase().trim();
+
+            if (!searchTerm) {
+                // Se não há termo de busca, mostrar todos os salões
+                displaySalons(allSalons);
+                return;
+            }
+
+            // Filtrar salões que contenham o termo de busca no nome
+            const filteredSalons = allSalons.filter(salon =>
+                salon.nome && salon.nome.toLowerCase().includes(searchTerm)
+            );
+
+            // Mostrar salões filtrados
+            displaySalons(filteredSalons);
+
+            // Se não encontrou nenhum salão, mostrar mensagem
+            if (filteredSalons.length === 0) {
+                const salonsGrid = document.getElementById('salonsGrid');
+                salonsGrid.innerHTML = `
+                    <div class="card" style="text-align: center; padding: 2rem;">
+                        <h3>Nenhum salão encontrado</h3>
+                        <p class="text-muted">Não foi encontrado nenhum salão com o nome "${searchTerm}".</p>
+                        <button class="btn btn-outline" onclick="document.getElementById('salonSearch').value=''; filterSalons();">
+                            Mostrar todos os salões
+                        </button>
+                    </div>
+                `;
+            }
+        }
+    </script>
+
+    <style>
+        .salon-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+
+        .salon-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .salon-card-content {
+            padding: 1.5rem;
+        }
+
+        .salon-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .salon-logo {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-right: 1rem;
+        }
+
+        .salon-logo-placeholder {
+            width: 60px;
+            height: 60px;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-right: 1rem;
+        }
+
+        .salon-info {
+            flex: 1;
+        }
+
+        .salon-name {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+        }
+
+        .salon-address {
+            margin: 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .salon-phone {
+            margin: 0 0 1rem 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .salon-actions {
+            text-align: right;
+        }
+
+        @media (max-width: 768px) {
+            .salon-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .salon-logo, .salon-logo-placeholder {
+                margin-right: 0;
+                margin-bottom: 1rem;
+            }
+
+            .salon-actions {
+                text-align: center;
+                margin-top: 1rem;
+            }
+        }
+    </style>
+</body>
+
+</html>
