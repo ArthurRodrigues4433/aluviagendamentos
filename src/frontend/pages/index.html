@@ -10,6 +10,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/frontend/assets/styles.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#60A5FA">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Aluvi">
+    <link rel="apple-touch-icon" href="/frontend/assets/icon-192x192.png">
 </head>
 
 <body>
@@ -138,6 +144,97 @@
     <script src="/frontend/config.js"></script>
     <script src="/frontend/app.js"></script>
     <script>
+        // Registrar Service Worker para PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('[PWA] Service Worker registrado com sucesso:', registration.scope);
+
+                        // Verificar se há atualização disponível
+                        registration.addEventListener('updatefound', function() {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', function() {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // Nova versão disponível
+                                    UI.showSuccess('🚀 Nova versão disponível! Atualize a página para usar a versão mais recente.', 10000);
+                                }
+                            });
+                        });
+
+                        // Monitorar estado do SW
+                        if (registration.active) {
+                            console.log('[PWA] Service Worker ativo');
+                        }
+                    })
+                    .catch(function(error) {
+                        console.error('[PWA] Falha ao registrar Service Worker:', error);
+                    });
+            });
+        } else {
+            console.warn('[PWA] Service Worker não suportado neste navegador');
+        }
+
+        // Solicitar permissão para notificações push
+        function requestNotificationPermission() {
+            if ('Notification' in window && navigator.serviceWorker) {
+                Notification.requestPermission().then(function(permission) {
+                    if (permission === 'granted') {
+                        console.log('[PWA] Permissão para notificações concedida');
+                        // Aqui poderia registrar o token para push notifications
+                    } else {
+                        console.log('[PWA] Permissão para notificações negada');
+                    }
+                });
+            }
+        }
+
+        // Solicitar instalação do PWA
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', function(e) {
+            console.log('[PWA] Evento beforeinstallprompt capturado');
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Mostrar botão de instalação personalizado se desejar
+            // showInstallButton();
+        });
+
+        // Função para instalar o PWA
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(function(choiceResult) {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('[PWA] Usuário aceitou instalar o PWA');
+                    } else {
+                        console.log('[PWA] Usuário rejeitou instalar o PWA');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        }
+
+        // Detectar se está rodando como PWA
+        function isPWA() {
+            return window.matchMedia('(display-mode: standalone)').matches ||
+                    window.navigator.standalone === true;
+        }
+
+        // Executar quando DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', function() {
+            if (isPWA()) {
+                console.log('[PWA] Aplicativo rodando como PWA');
+                // Comportamentos específicos para PWA
+            }
+
+            // Solicitar permissão para notificações após interação do usuário
+            document.addEventListener('click', function requestPermissionOnce() {
+                requestNotificationPermission();
+                document.removeEventListener('click', requestPermissionOnce);
+            }, { once: true });
+        });
+
         // Variáveis globais
         let services = [];
 
