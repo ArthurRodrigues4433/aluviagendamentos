@@ -1,0 +1,52 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+- job_name: system
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: varlogs
+      __path__: /var/log/*log
+
+- job_name: aluvi-backend
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: aluvi-backend
+      __path__: /app/logs/*.log
+  pipeline_stages:
+  - match:
+      selector: '{job="aluvi-backend"}'
+      stages:
+      - regex:
+          expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) - (?P<logger>\w+) - (?P<level>\w+) - (?P<message>.+)$'
+      - labels:
+          level:
+          logger:
+
+- job_name: nginx
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: nginx
+      __path__: /var/log/nginx/*.log
+  pipeline_stages:
+  - match:
+      selector: '{job="nginx"}'
+      stages:
+      - regex:
+          expression: '(?P<ip>\S+) - - \[(?P<timestamp>\d{2}\/\w{3}\/\d{4}:\d{2}:\d{2}:\d{2} \+\d{4})\] "(?P<method>\w+) (?P<path>.*?) HTTP\/\d\.\d" (?P<status>\d+) (?P<size>\d+)'
+      - labels:
+          method:
+          status:

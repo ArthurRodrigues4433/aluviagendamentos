@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://public-frontend-cos.metadl.com/mgx/img/favicon.png" type="image/png">
+    <title>Novo Agendamento - SaaS Agendamento</title>
+    <link rel="stylesheet" href="/frontend/assets/styles.css">
+    <link rel="manifest" href="/manifest.json">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="dashboard-cliente.html" class="logo">Aluvi Cliente</a>
+                <ul class="nav-links">
+                    <li><a href="dashboard-cliente.html">Dashboard</a></li>
+                    <li><a href="appointments.html">Meus Agendamentos</a></li>
+                    <li><a href="profile.html">Perfil</a></li>
+                    <li><a href="#" id="logoutBtn">Sair</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Progress Bar -->
+    <div class="progress-container">
+        <div class="container">
+            <div class="progress-bar">
+                <div class="progress-step active" data-step="1">
+                    <div class="step-number">1</div>
+                    <div class="step-label">Serviço</div>
+                </div>
+                <div class="progress-step" data-step="2">
+                    <div class="step-number">2</div>
+                    <div class="step-label">Profissional</div>
+                </div>
+                <div class="progress-step" data-step="3">
+                    <div class="step-number">3</div>
+                    <div class="step-label">Confirmação</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Step 1: Seleção de Serviço -->
+        <div id="step1" class="appointment-step active">
+            <div class="d-flex justify-between align-center mb-2">
+                <h1>Escolha o Serviço</h1>
+                <button class="btn btn-secondary" onclick="goBack()">Voltar</button>
+            </div>
+
+            <div class="services-grid" id="servicesGrid">
+                <div class="loading">Carregando serviços...</div>
+            </div>
+        </div>
+
+        <!-- Step 2: Seleção de Profissional e Horário -->
+        <div id="step2" class="appointment-step">
+            <div class="d-flex justify-between align-center mb-2">
+                <h1>Escolha Profissional e Horário</h1>
+                <button class="btn btn-secondary" onclick="goToStep(1)">Voltar</button>
+            </div>
+
+            <div class="selected-service mb-3" id="selectedServiceInfo">
+                <!-- Info do serviço selecionado -->
+            </div>
+
+            <!-- Seleção de Profissional -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h3>Profissionais Disponíveis</h3>
+                </div>
+                <div class="professionals-grid" id="professionalsGrid">
+                    <div class="loading">Carregando profissionais...</div>
+                </div>
+            </div>
+
+            <!-- Calendário de Horários -->
+            <div class="card" id="timeSlotsCard" style="display: none;">
+                <div class="card-header">
+                    <h3>Horários Disponíveis</h3>
+                    <div class="d-flex gap-1 align-center">
+                        <button class="btn btn-sm btn-outline" id="prevDay">&larr;</button>
+                        <span id="currentDate"></span>
+                        <button class="btn btn-sm btn-outline" id="nextDay">&rarr;</button>
+                    </div>
+                </div>
+                <div class="time-slots-grid" id="timeSlotsGrid">
+                    <!-- Horários serão carregados aqui -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Confirmação -->
+        <div id="step3" class="appointment-step">
+            <div class="d-flex justify-between align-center mb-2">
+                <h1>Confirme seu Agendamento</h1>
+                <button class="btn btn-secondary" onclick="goToStep(2)">Voltar</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Resumo do Agendamento</h3>
+                </div>
+
+                <div class="appointment-summary" id="appointmentSummary">
+                    <!-- Resumo será preenchido dinamicamente -->
+                </div>
+
+                <div class="d-flex gap-1 mt-3">
+                    <button class="btn btn-primary" id="confirmAppointment" style="flex: 1;">
+                        Confirmar Agendamento
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="/frontend/config.js"></script>
+    <script src="/frontend/app.js"></script>
+    <script>
+        // Estado do agendamento
+        let currentStep = 1;
+        let selectedService = null;
+        let selectedProfessional = null;
+        let selectedDateTime = null;
+        let availableServices = [];
+        let availableProfessionals = [];
+        let currentDate = new Date();
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('[NEW-APPOINTMENT] Inicializando fluxo de agendamento...');
+
+            // Verificar autenticação
+            if (!AuthGuard.requireAuth(['cliente'])) return;
+
+            setupEventListeners();
+            loadServices();
+        });
+
+        // Configurar event listeners
+        function setupEventListeners() {
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', () => api.logout());
+
+            // Navegação de datas
+            document.getElementById('prevDay').addEventListener('click', () => changeDate(-1));
+            document.getElementById('nextDay').addEventListener('click', () => changeDate(1));
+
+            // Confirmação
+            document.getElementById('confirmAppointment').addEventListener('click', confirmAppointment);
+        }
+
+        // Carregar serviços
+        async function loadServices() {
+            try {
+                console.log('[NEW-APPOINTMENT] Carregando serviços...');
+                UI.showLoading(document.getElementById('servicesGrid'));
+
+                // Usar endpoint público para serviços
+                const response = await api.request('/services/public');
+                console.log('[NEW-APPOINTMENT] Serviços carregados:', response);
+
+                if (response && Array.isArray(response)) {
+                    availableServices = response;
+                    displayServices();
+                } else {
+                    console.warn('[NEW-APPOINTMENT] Nenhum serviço encontrado');
+                    document.getElementById('servicesGrid').innerHTML =
+                        '<div class="alert alert-warning">Nenhum serviço disponível no momento.</div>';
+                }
+
+            } catch (error) {
+                console.error('[NEW-APPOINTMENT] Erro ao carregar serviços:', error);
+                document.getElementById('servicesGrid').innerHTML =
+                    '<div class="alert alert-error">Erro ao carregar serviços. Tente novamente.</div>';
+            }
+        }
+
+        // Exibir serviços
+        function displayServices() {
+            const container = document.getElementById('servicesGrid');
+
+            if (availableServices.length === 0) {
+                container.innerHTML = '<div class="alert alert-warning">Nenhum serviço disponível.</div>';
+                return;
+            }
+
+            let html = '';
+            availableServices.forEach(service => {
+                html += `
+                    <div class="service-card" onclick="selectService(${service.id})">
+                        <div class="service-header">
+                            <h3>${service.nome}</h3>
+                            <div class="service-price">${Formatter.currency(service.preco)}</div>
+                        </div>
+                        <div class="service-body">
+                            <p class="service-description">${service.descricao || 'Sem descrição'}</p>
+                            <div class="service-meta">
+                                <span class="badge badge-info">${service.duracao_minutos} min</span>
+                                <span class="badge badge-success">+${service.pontos_fidelidade} pts</span>
+                            </div>
+                        </div>
+                        <div class="service-footer">
+                            <button class="btn btn-primary btn-sm">Selecionar</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Selecionar serviço
+        function selectService(serviceId) {
+            selectedService = availableServices.find(s => s.id === serviceId);
+            if (!selectedService) return;
+
+            console.log('[NEW-APPOINTMENT] Serviço selecionado:', selectedService);
+            goToStep(2);
+        }
+
+        // Ir para passo específico
+        function goToStep(step) {
+            // Esconder todos os passos
+            document.querySelectorAll('.appointment-step').forEach(stepEl => {
+                stepEl.classList.remove('active');
+            });
+
+            // Atualizar barra de progresso
+            document.querySelectorAll('.progress-step').forEach(stepEl => {
+                const stepNum = parseInt(stepEl.dataset.step);
+                if (stepNum <= step) {
+                    stepEl.classList.add('active');
+                } else {
+                    stepEl.classList.remove('active');
+                }
+            });
+
+            // Mostrar passo atual
+            document.getElementById(`step${step}`).classList.add('active');
+            currentStep = step;
+
+            // Executar ações específicas do passo
+            switch(step) {
+                case 2:
+                    loadProfessionals();
+                    updateSelectedServiceInfo();
+                    break;
+                case 3:
+                    updateAppointmentSummary();
+                    break;
+            }
+        }
+
+        // Atualizar info do serviço selecionado
+        function updateSelectedServiceInfo() {
+            if (!selectedService) return;
+
+            const container = document.getElementById('selectedServiceInfo');
+            container.innerHTML = `
+                <div class="selected-service-card">
+                    <div class="d-flex justify-between align-center">
+                        <div>
+                            <h3>${selectedService.nome}</h3>
+                            <p>${selectedService.descricao || 'Sem descrição'}</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="service-price">${Formatter.currency(selectedService.preco)}</div>
+                            <div class="service-meta">
+                                <span class="badge badge-info">${selectedService.duracao_minutos} min</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Carregar profissionais
+        async function loadProfessionals() {
+            try {
+                console.log('[NEW-APPOINTMENT] Carregando profissionais...');
+                UI.showLoading(document.getElementById('professionalsGrid'));
+
+                // Buscar profissionais do salão atual (baseado no token)
+                const response = await api.request('/professionals/public');
+                console.log('[NEW-APPOINTMENT] Profissionais carregados:', response);
+
+                if (response && Array.isArray(response)) {
+                    // Filtrar apenas profissionais ativos
+                    availableProfessionals = response.filter(p => p.ativo);
+                    displayProfessionals();
+                } else {
+                    document.getElementById('professionalsGrid').innerHTML =
+                        '<div class="alert alert-warning">Nenhum profissional disponível.</div>';
+                }
+
+            } catch (error) {
+                console.error('[NEW-APPOINTMENT] Erro ao carregar profissionais:', error);
+                document.getElementById('professionalsGrid').innerHTML =
+                    '<div class="alert alert-error">Erro ao carregar profissionais.</div>';
+            }
+        }
+
+        // Exibir profissionais
+        function displayProfessionals() {
+            const container = document.getElementById('professionalsGrid');
+
+            if (availableProfessionals.length === 0) {
+                container.innerHTML = '<div class="alert alert-warning">Nenhum profissional disponível.</div>';
+                return;
+            }
+
+            let html = '';
+            availableProfessionals.forEach(professional => {
+                const isSelected = selectedProfessional && selectedProfessional.id === professional.id;
+                html += `
+                    <div class="professional-card ${isSelected ? 'selected' : ''}" onclick="selectProfessional(${professional.id})">
+                        <div class="professional-avatar">
+                            ${professional.foto ? `<img src="${professional.foto}" alt="${professional.nome}">` : '<div class="avatar-placeholder">👤</div>'}
+                        </div>
+                        <div class="professional-info">
+                            <h4>${professional.nome}</h4>
+                            <p>${professional.especialidade || 'Especialista'}</p>
+                        </div>
+                        <div class="professional-select">
+                            <input type="radio" name="professional" value="${professional.id}" ${isSelected ? 'checked' : ''}>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Selecionar profissional
+        function selectProfessional(professionalId) {
+            selectedProfessional = availableProfessionals.find(p => p.id === professionalId);
+            if (!selectedProfessional) return;
+
+            console.log('[NEW-APPOINTMENT] Profissional selecionado:', selectedProfessional);
+            displayProfessionals(); // Re-render para mostrar seleção
+            loadAvailableTimeSlots();
+        }
+
+        // Carregar horários disponíveis
+        async function loadAvailableTimeSlots() {
+            if (!selectedProfessional) return;
+
+            try {
+                console.log('[NEW-APPOINTMENT] Carregando horários disponíveis...');
+
+                // Mostrar card de horários
+                document.getElementById('timeSlotsCard').style.display = 'block';
+
+                // Atualizar data atual
+                updateCurrentDate();
+
+                // Buscar horários disponíveis para o profissional na data atual
+                const dateStr = currentDate.toISOString().split('T')[0];
+                const response = await api.request(`/appointments/available-slots?professional_id=${selectedProfessional.id}&date=${dateStr}&service_id=${selectedService.id}`);
+
+                console.log('[NEW-APPOINTMENT] Horários disponíveis:', response);
+
+                if (response && Array.isArray(response)) {
+                    displayTimeSlots(response);
+                } else {
+                    document.getElementById('timeSlotsGrid').innerHTML =
+                        '<div class="alert alert-warning">Nenhum horário disponível para esta data.</div>';
+                }
+
+            } catch (error) {
+                console.error('[NEW-APPOINTMENT] Erro ao carregar horários:', error);
+                document.getElementById('timeSlotsGrid').innerHTML =
+                    '<div class="alert alert-error">Erro ao carregar horários disponíveis.</div>';
+            }
+        }
+
+        // Exibir horários disponíveis
+        function displayTimeSlots(slots) {
+            const container = document.getElementById('timeSlotsGrid');
+
+            if (slots.length === 0) {
+                container.innerHTML = '<div class="alert alert-warning">Nenhum horário disponível.</div>';
+                return;
+            }
+
+            let html = '';
+            slots.forEach(slot => {
+                const timeStr = slot.time;
+                const isSelected = selectedDateTime && selectedDateTime.time === timeStr;
+                html += `
+                    <button class="time-slot ${isSelected ? 'selected' : ''}" onclick="selectTimeSlot('${timeStr}')">
+                        ${timeStr}
+                    </button>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Selecionar horário
+        function selectTimeSlot(timeStr) {
+            // Criar DateTime combinando data atual com horário selecionado
+            const [hours, minutes] = timeStr.split(':');
+            const dateTime = new Date(currentDate);
+            dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+            selectedDateTime = {
+                date: currentDate.toISOString().split('T')[0],
+                time: timeStr,
+                dateTime: dateTime
+            };
+
+            console.log('[NEW-APPOINTMENT] Horário selecionado:', selectedDateTime);
+            displayTimeSlots(document.querySelectorAll('.time-slot').length ? getCurrentSlots() : []);
+            checkIfCanProceed();
+        }
+
+        // Obter slots atuais (simulação)
+        function getCurrentSlots() {
+            // Esta função seria substituída pela resposta real da API
+            return Array.from(document.querySelectorAll('.time-slot')).map(btn => ({
+                time: btn.textContent.trim()
+            }));
+        }
+
+        // Verificar se pode prosseguir
+        function checkIfCanProceed() {
+            if (selectedService && selectedProfessional && selectedDateTime) {
+                // Habilitar botão de próximo
+                const nextBtn = document.querySelector('.btn-primary:not(#confirmAppointment)');
+                if (nextBtn) nextBtn.disabled = false;
+            }
+        }
+
+        // Mudar data
+        function changeDate(days) {
+            currentDate.setDate(currentDate.getDate() + days);
+            loadAvailableTimeSlots();
+        }
+
+        // Atualizar data atual na interface
+        function updateCurrentDate() {
+            const dateStr = currentDate.toLocaleDateString('pt-BR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            document.getElementById('currentDate').textContent = dateStr;
+        }
+
+        // Atualizar resumo do agendamento
+        function updateAppointmentSummary() {
+            if (!selectedService || !selectedProfessional || !selectedDateTime) {
+                goToStep(2); // Voltar se dados incompletos
+                return;
+            }
+
+            const container = document.getElementById('appointmentSummary');
+            const dateTime = new Date(selectedDateTime.dateTime);
+
+            container.innerHTML = `
+                <div class="summary-item">
+                    <strong>Serviço:</strong> ${selectedService.nome}
+                </div>
+                <div class="summary-item">
+                    <strong>Profissional:</strong> ${selectedProfessional.nome}
+                </div>
+                <div class="summary-item">
+                    <strong>Data e Hora:</strong> ${dateTime.toLocaleString('pt-BR')}
+                </div>
+                <div class="summary-item">
+                    <strong>Duração:</strong> ${selectedService.duracao_minutos} minutos
+                </div>
+                <div class="summary-item">
+                    <strong>Valor:</strong> ${Formatter.currency(selectedService.preco)}
+                </div>
+                <div class="summary-item">
+                    <strong>Pontos a Ganhar:</strong> ${selectedService.pontos_fidelidade}
+                </div>
+            `;
+        }
+
+        // Confirmar agendamento
+        async function confirmAppointment() {
+            if (!selectedService || !selectedProfessional || !selectedDateTime) {
+                UI.showError('Dados incompletos para agendamento');
+                return;
+            }
+
+            try {
+                // Desabilitar botão
+                const btn = document.getElementById('confirmAppointment');
+                const originalText = btn.textContent;
+                btn.textContent = 'Agendando...';
+                btn.disabled = true;
+
+                // Preparar dados
+                const appointmentData = {
+                    service_id: selectedService.id,
+                    professional_id: selectedProfessional.id,
+                    salon_id: 1, // TODO: Obter do contexto
+                    data_hora: selectedDateTime.dateTime.toISOString(),
+                    valor: selectedService.preco
+                };
+
+                console.log('[NEW-APPOINTMENT] Criando agendamento:', appointmentData);
+
+                const response = await api.createAppointment(appointmentData);
+
+                if (response.success) {
+                    UI.showSuccess('Agendamento realizado com sucesso!');
+                    // Redirecionar para lista de agendamentos
+                    setTimeout(() => {
+                        window.location.href = 'appointments.html';
+                    }, 2000);
+                } else {
+                    throw new Error(response.message || 'Erro ao criar agendamento');
+                }
+
+            } catch (error) {
+                console.error('[NEW-APPOINTMENT] Erro ao confirmar agendamento:', error);
+                UI.showError(error.message || 'Erro ao realizar agendamento');
+            } finally {
+                // Reabilitar botão
+                const btn = document.getElementById('confirmAppointment');
+                btn.textContent = 'Confirmar Agendamento';
+                btn.disabled = false;
+            }
+        }
+
+        // Voltar
+        function goBack() {
+            window.location.href = 'dashboard-cliente.html';
+        }
+
+        // Funções globais
+        window.selectService = selectService;
+        window.selectProfessional = selectProfessional;
+        window.selectTimeSlot = selectTimeSlot;
+        window.goToStep = goToStep;
+        window.goBack = goBack;
+    </script>
+
+    <style>
+        .progress-container {
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+        }
+
+        .progress-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .progress-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            position: relative;
+        }
+
+        .progress-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            width: calc(100% - 30px);
+            height: 2px;
+            background: var(--border-color);
+            z-index: 1;
+        }
+
+        .progress-step.active:not(:last-child)::after {
+            background: var(--primary-color);
+        }
+
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--border-color);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .progress-step.active .step-number {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .step-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .progress-step.active .step-label {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .appointment-step {
+            display: none;
+        }
+
+        .appointment-step.active {
+            display: block;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .service-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .service-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .service-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .service-price {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .service-meta {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .professionals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .professional-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .professional-card:hover,
+        .professional-card.selected {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+        }
+
+        .professional-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            overflow: hidden;
+        }
+
+        .avatar-placeholder {
+            width: 100%;
+            height: 100%;
+            background: var(--input-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .time-slots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.5rem;
+            padding: 1rem 0;
+        }
+
+        .time-slot {
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .time-slot:hover {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .time-slot.selected {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: white;
+            font-weight: bold;
+        }
+
+        .selected-service-card {
+            background: var(--primary-light);
+            border: 1px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .summary-item {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .services-grid,
+            .professionals-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .progress-bar {
+                padding: 0 1rem;
+            }
+
+            .step-label {
+                font-size: 0.7rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .time-slots-grid {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .service-card,
+            .professional-card {
+                padding: 1rem;
+            }
+
+            .progress-container {
+                padding: 0.5rem 0;
+            }
+        }
+    </style>
+</body>
+
+</html>

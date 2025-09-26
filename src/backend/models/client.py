@@ -3,13 +3,13 @@ Definições de modelo de cliente para o backend Aluvi.
 Gerencia clientes do salão e seus programas de fidelidade.
 """
 
-from sqlalchemy import Column, String, Integer, ForeignKey, Boolean, UniqueConstraint
+from sqlalchemy import Column, String, Integer, ForeignKey, Boolean, UniqueConstraint, CheckConstraint
 from sqlalchemy.orm import relationship
 
-from .base import BaseModel, TimestampMixin
+from .base import BaseModel, TimestampMixin, SoftDeleteMixin
 
 
-class Client(BaseModel, TimestampMixin):
+class Client(BaseModel, TimestampMixin, SoftDeleteMixin):
     """
     Modelo de cliente representando clientes do salão.
 
@@ -40,6 +40,7 @@ class Client(BaseModel, TimestampMixin):
     # Constraints
     __table_args__ = (
         UniqueConstraint('telefone', 'salon_id', name='unique_telefone_per_salon'),
+        CheckConstraint('pontos_fidelidade >= 0', name='chk_pontos_nao_negativos'),
     )
 
     @property

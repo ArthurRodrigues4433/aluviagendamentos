@@ -6,10 +6,10 @@ Gerencia profissionais do salão e seus serviços.
 from sqlalchemy import Column, String, Integer, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 
-from .base import BaseModel, TimestampMixin
+from .base import BaseModel, TimestampMixin, SoftDeleteMixin
 
 
-class Professional(BaseModel, TimestampMixin):
+class Professional(BaseModel, TimestampMixin, SoftDeleteMixin):
     """
     Modelo de profissional representando equipe do salão.
 

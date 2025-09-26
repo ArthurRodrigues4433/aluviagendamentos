@@ -1,597 +1,226 @@
-# Aluvi - Sistema de Agendamento para Salões de Beleza
+# Aluvi API - Sistema de Agendamentos para Salões
 
-[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
-[![SQLite/PostgreSQL](https://img.shields.io/badge/Database-SQLite/PostgreSQL-orange.svg)](https://www.sqlite.org/)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![CI/CD Pipeline](https://github.com/your-org/aluvi-api/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/your-org/aluvi-api/actions/workflows/ci-cd.yml)
+[![Coverage](https://codecov.io/gh/your-org/aluvi-api/branch/main/graph/badge.svg)](https://codecov.io/gh/your-org/aluvi-api)
+[![Python Version](https://img.shields.io/badge/python-3.11-blue.svg)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Sistema completo de agendamento para salões de beleza com arquitetura modular, testes automatizados e preparado para produção.
+Sistema completo de agendamentos para salões de beleza com arquitetura robusta, monitoramento avançado e CI/CD automatizado.
 
-## 📋 Índice
+## 🚀 Funcionalidades
 
-- [Visão Geral](#-visão-geral)
-- [Funcionalidades](#-funcionalidades)
-- [Arquitetura](#-arquitetura)
-- [Estrutura do Projeto](#-estrutura-do-projeto)
-- [Tecnologias](#-tecnologias)
-- [Instalação](#-instalação)
-- [Configuração](#-configuração)
-- [Uso](#-uso)
-- [Scripts Disponíveis](#-scripts-disponíveis)
-- [Testes](#-testes)
-- [Deploy](#-deploy)
-- [Monitoramento](#-monitoramento)
-- [Segurança](#-segurança)
-- [Documentação da API](#-documentação-da-api)
-- [Contribuição](#-contribuição)
-- [Licença](#-licença)
+### 👥 **Gestão de Usuários**
+- Cadastro e autenticação de donos de salão
+- Sistema de administradores
+- Controle de permissões baseado em papéis
 
-## 🎯 Visão Geral
+### 🏪 **Salões**
+- Gerenciamento completo de informações do salão
+- Configuração de horários de funcionamento
+- Personalização de cards de apresentação
 
-O Aluvi é um sistema SaaS completo para gestão de salões de beleza, oferecendo:
+### 👨‍💼 **Clientes**
+- Cadastro de clientes (anônimos ou registrados)
+- Programa de fidelidade com pontos
+- Histórico completo de agendamentos
 
-- **Agendamento online** com confirmação automática
-- **Gestão de clientes** com programa de fidelidade
-- **Controle de profissionais** e serviços
-- **Relatórios e analytics** para donos
-- **Sistema multi-salão** com isolamento de dados
-- **Interface responsiva** para desktop e mobile
+### ✂️ **Serviços**
+- Catálogo completo de serviços
+- Definição de preços e durações
+- Controle de pontos de fidelidade
 
-## ✨ Funcionalidades
+### 👩‍💼 **Profissionais**
+- Cadastro da equipe do salão
+- Especialidades e disponibilidade
+- Associação com serviços
 
-### 👤 Para Clientes
-- ✅ Agendamento online 24/7
-- ✅ Visualização de serviços e preços
-- ✅ Histórico de agendamentos
-- ✅ Programa de fidelidade
-- ✅ Cancelamento e reagendamento
+### 📅 **Agendamentos**
+- Sistema completo de reservas
+- Validação automática de conflitos
+- Controle de ciclo de vida dos agendamentos
+- Notificações e lembretes
 
-### 💇 Para Profissionais
-- ✅ Visualização da agenda diária
-- ✅ Confirmação de presença
-- ✅ Gestão de horários de trabalho
-- ✅ Histórico de atendimentos
+## 🛠️ **Tecnologias**
 
-### 👨‍💼 Para Donos de Salão
-- ✅ Dashboard com estatísticas
-- ✅ Gestão completa de clientes
-- ✅ Controle de serviços e preços
-- ✅ Relatórios de faturamento
-- ✅ Gestão de profissionais
-- ✅ Configuração de horários
+- **Backend**: FastAPI (Python 3.11)
+- **Banco de Dados**: SQLite (dev) / PostgreSQL (prod)
+- **Cache**: Redis
+- **Monitoramento**: Prometheus + Grafana
+- **Containerização**: Docker
+- **CI/CD**: GitHub Actions
+- **Testes**: pytest + coverage
+- **Documentação**: OpenAPI/Swagger
 
-### 👑 Para Administradores
-- ✅ Gestão de múltiplos salões
-- ✅ Criação de contas de donos
-- ✅ Monitoramento do sistema
-- ✅ Relatórios globais
-- ✅ Configurações do sistema
-
-## 🏗️ Arquitetura
-
-```
-src/
-├── backend/           # Backend Python/FastAPI
-│   ├── core/         # Configurações e database
-│   ├── models/       # Modelos SQLAlchemy
-│   ├── routes/       # Endpoints da API
-│   ├── services/     # Lógica de negócio
-│   └── utils/        # Utilitários
-├── frontend/         # Frontend JavaScript
-│   ├── services/     # Serviços frontend
-│   ├── components/   # Componentes reutilizáveis
-│   └── pages/        # Páginas HTML
-└── tests/           # Testes automatizados
-```
-
-### Arquitetura Backend
-
-- **FastAPI**: Framework web moderno e rápido
-- **SQLAlchemy**: ORM para banco de dados
-- **Pydantic**: Validação de dados
-- **JWT**: Autenticação stateless
-- **SQLite/PostgreSQL**: Suporte a múltiplos bancos
-
-### Arquitetura Frontend
-
-- **Vanilla JavaScript**: Sem frameworks pesados
-- **ES6 Modules**: Modularização moderna
-- **CSS Grid/Flexbox**: Layout responsivo
-- **Componentes reutilizáveis**: Modal, notificações, tabelas
-
-## 📁 Estrutura do Projeto
-
-```
-aluvi/
-├── .gitignore                    # Arquivos ignorados pelo Git
-├── .env                         # Variáveis de ambiente (não versionado)
-├── README.md                    # Este arquivo
-├── requirements.txt             # Dependências Python
-├── requirements-test.txt        # Dependências de teste
-├── pytest.ini                   # Configuração do pytest
-├── run.py                       # Script de inicialização
-├── aluvi.db                     # Banco SQLite (desenvolvimento)
-├── data/                        # Dados e backups
-│   ├── .env                     # Variáveis de ambiente locais
-│   └── aluvi_backup_*.db        # Backups automáticos
-├── docs/                        # Documentação
-│   ├── API.md                   # Documentação da API
-│   └── DEPLOY.md                # Guia de deploy
-├── migrations/                  # Scripts de migração
-├── scripts/                     # Scripts utilitários
-│   ├── __init__.py
-│   ├── check_admin_users.py     # Verificar usuários admin
-│   ├── check_appointments.py    # Verificar agendamentos
-│   ├── check_users.py           # Verificar usuários
-│   ├── clear_database.py        # Limpar banco de dados
-│   ├── create_admin_test.py     # Criar admin de teste
-│   ├── create_test_appointment.py # Criar agendamento teste
-│   ├── create_test_appointments.py # Criar múltiplos agendamentos
-│   ├── create_test_data.py      # Criar dados de teste
-│   ├── create_test_user.py      # Criar usuário teste
-│   ├── migrate_add_points.py    # Migração de pontos
-│   ├── migrate_add_salon_fields.py # Migração campos salão
-│   ├── migrate_database.py      # Executar migrações
-│   ├── run-tests.py             # Executar testes
-│   ├── set_admin_password.py    # Definir senha admin
-│   └── update_past_appointments.py # Atualizar agendamentos passados
-├── src/
-│   ├── backend/                 # Código backend Python
-│   │   ├── __init__.py
-│   │   ├── config.py            # Configurações da aplicação
-│   │   ├── database.py          # Conexão com banco
-│   │   ├── dependencies.py      # Dependências FastAPI
-│   │   ├── main.py              # Aplicação principal
-│   │   ├── models.py            # Modelos de dados (legado)
-│   │   ├── schemas.py           # Schemas Pydantic
-│   │   ├── core/                # Configurações core
-│   │   │   ├── __init__.py
-│   │   │   ├── config.py        # Configurações centrais
-│   │   │   ├── database.py      # Gerenciador de banco
-│   │   │   ├── logging.py       # Sistema de logging
-│   │   │   └── monitoring.py    # Monitoramento e health checks
-│   │   ├── models/              # Modelos SQLAlchemy
-│   │   │   ├── __init__.py
-│   │   │   ├── appointment.py   # Modelo de agendamento
-│   │   │   ├── audit.py         # Modelo de auditoria
-│   │   │   ├── base.py          # Modelos base
-│   │   │   ├── business_hours.py # Horários comerciais
-│   │   │   ├── client.py        # Modelo de cliente
-│   │   │   ├── enums.py         # Enums do sistema
-│   │   │   ├── professional.py  # Modelo de profissional
-│   │   │   ├── service.py       # Modelo de serviço
-│   │   │   └── user.py          # Modelo de usuário
-│   │   ├── routes/              # Endpoints da API
-│   │   │   ├── __init__.py
-│   │   │   ├── appointments.py  # Rotas de agendamentos
-│   │   │   ├── auth.py          # Rotas de autenticação
-│   │   │   ├── business_hours.py # Rotas de horários
-│   │   │   ├── clients.py       # Rotas de clientes
-│   │   │   ├── monitoring.py    # Rotas de monitoramento
-│   │   │   ├── professionals.py # Rotas de profissionais
-│   │   │   ├── reports.py       # Rotas de relatórios
-│   │   │   ├── salons.py        # Rotas de salões
-│   │   │   └── services.py      # Rotas de serviços
-│   │   ├── services/            # Lógica de negócio
-│   │   │   ├── __init__.py
-│   │   │   └── auth_service.py  # Serviço de autenticação
-│   │   └── utils/               # Utilitários (se existir)
-│   ├── frontend/                # Código frontend
-│   │   ├── app.js               # Aplicação principal frontend
-│   │   ├── assets/              # Assets estáticos
-│   │   │   ├── style.css        # Estilos adicionais
-│   │   │   └── styles.css       # Estilos principais
-│   │   ├── components/          # Componentes reutilizáveis
-│   │   │   ├── __init__.js
-│   │   │   ├── modal.js         # Componente modal
-│   │   │   └── notification-manager.js # Gerenciador notificações
-│   │   ├── pages/               # Páginas HTML
-│   │   │   ├── change-password.html # Alterar senha
-│   │   │   ├── dashboard-admin.html # Dashboard admin
-│   │   │   ├── dashboard-cliente.html # Dashboard cliente
-│   │   │   ├── dashboard-dono.html # Dashboard dono
-│   │   │   ├── index.html       # Página inicial
-│   │   │   ├── login.html       # Login
-│   │   │   ├── register.html    # Registro
-│   │   │   └── salon-selection.html # Seleção de salão
-│   │   ├── services/            # Serviços frontend
-│   │   │   ├── __init__.js
-│   │   │   ├── api-service.js   # Serviço de API
-│   │   │   ├── auth-guard.js    # Guarda de autenticação
-│   │   │   ├── config.js        # Configurações frontend
-│   │   │   ├── formatter.js     # Utilitários de formatação
-│   │   │   ├── salon-manager.js # Gerenciador de salão
-│   │   │   └── ui-utils.js      # Utilitários de UI
-│   │   └── utils/               # Utilitários frontend
-│   └── tests/                   # Testes
-│       ├── __init__.py
-│       ├── conftest.py          # Configuração de testes
-│       ├── test_auth_service.py # Testes auth
-│       ├── test_models.py       # Testes modelos
-│       └── frontend/            # Testes frontend
-│           ├── test_tabs.js
-│           ├── test-login.js
-│           └── TESTE_HORARIOS.md
-└── tests/                      # Testes adicionais
-    ├── __init__.py
-    └── ... (outros arquivos de teste)
-```
-
-## 🛠️ Tecnologias
-
-### Backend
-- **Python 3.9+**
-- **FastAPI** - Framework web
-- **SQLAlchemy** - ORM
-- **Pydantic** - Validação
-- **JWT** - Autenticação
-- **SQLite/PostgreSQL** - Banco de dados
-
-### Frontend
-- **JavaScript ES6+**
-- **HTML5/CSS3**
-- **Fetch API** - Requisições HTTP
-- **LocalStorage/SessionStorage** - Armazenamento local
-
-### Desenvolvimento
-- **pytest** - Testes
-- **Black** - Formatação de código
-- **Flake8** - Linting
-- **pre-commit** - Hooks de git
-
-## 🚀 Instalação
+## 📦 **Instalação**
 
 ### Pré-requisitos
+- Python 3.11+
+- Docker & Docker Compose
+- Redis (opcional, para cache)
 
-- Python 3.9 ou superior
-- Node.js 16+ (opcional, para desenvolvimento frontend)
-- PostgreSQL (opcional, para produção)
+### Desenvolvimento Local
 
-### Instalação Rápida
+1. **Clone o repositório**
+   ```bash
+   git clone https://github.com/your-org/aluvi-api.git
+   cd aluvi-api
+   ```
 
-```bash
-# Clone o repositório
-git clone https://github.com/your-org/aluvi.git
-cd aluvi
+2. **Instale as dependências**
+   ```bash
+   pip install -r requirements.txt
+   pip install -r requirements-test.txt
+   ```
 
-# Instale as dependências
-pip install -r requirements.txt
+3. **Execute com Docker Compose (Recomendado)**
+   ```bash
+   docker-compose up -d
+   ```
 
-# Para desenvolvimento, instale também os testes
-pip install -r requirements-test.txt
-```
+4. **Ou execute localmente**
+   ```bash
+   # Com SQLite (desenvolvimento)
+   export ENVIRONMENT=development
+   uvicorn src.backend.main:app --reload
 
-### Configuração do Ambiente
+   # Com PostgreSQL (produção)
+   export DATABASE_URL=postgresql://user:password@localhost/aluvi
+   export REDIS_ENABLED=true
+   export REDIS_URL=redis://localhost:6379/0
+   uvicorn src.backend.main:app --host 0.0.0.0 --port 8000
+   ```
 
-```bash
-# Copie o arquivo de exemplo
-cp .env.example .env
-
-# Edite as configurações
-nano .env
-```
-
-## ⚙️ Configuração
-
-### Variáveis de Ambiente
-
-```env
-# Aplicação
-APP_ENV=development
-APP_DEBUG=true
-APP_SECRET_KEY=your-secret-key-here
-
-# Banco de dados
-DATABASE_URL=sqlite:///./aluvi.db
-# Para produção: DATABASE_URL=postgresql://user:pass@localhost/aluvi
-
-# JWT
-JWT_SECRET_KEY=your-jwt-secret
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
-
-# Email (opcional)
-SMTP_SERVER=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-```
-
-### Configuração do Banco
+## 🧪 **Testes**
 
 ```bash
-# Para desenvolvimento (SQLite)
-export DATABASE_URL="sqlite:///./aluvi.db"
+# Executar todos os testes
+pytest
 
-# Para produção (PostgreSQL)
-export DATABASE_URL="postgresql://user:password@localhost/aluvi_prod"
-```
+# Com coverage
+pytest --cov=src --cov-report=html
 
-## 🎮 Uso
-
-### Iniciando o Servidor
-
-```bash
-# Desenvolvimento
-python -m uvicorn src.backend.main:app --reload --host 0.0.0.0 --port 8000
-
-# Produção
-uvicorn src.backend.main:app --host 0.0.0.0 --port 8000 --workers 4
-```
-
-### Acessando a Aplicação
-
-- **Frontend**: http://localhost:8000
-- **API Docs**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
-
-### Primeiro Uso
-
-1. Acesse http://localhost:8000
-2. Crie uma conta de administrador
-3. Configure seu salão
-4. Adicione serviços e profissionais
-5. Comece a aceitar agendamentos!
-
-## 🔧 Scripts Disponíveis
-
-O projeto inclui vários scripts utilitários na pasta `scripts/` para facilitar o desenvolvimento e manutenção:
-
-### Scripts de Banco de Dados
-```bash
-# Limpar banco de dados completamente
-python scripts/clear_database.py
-
-# Executar migrações do banco
-python scripts/migrate_database.py
-
-# Adicionar campos de pontos aos clientes
-python scripts/migrate_add_points.py
-
-# Adicionar campos específicos do salão
-python scripts/migrate_add_salon_fields.py
-```
-
-### Scripts de Dados de Teste
-```bash
-# Criar dados de teste básicos
-python scripts/create_test_data.py
-
-# Criar usuário de teste
-python scripts/create_test_user.py
-
-# Criar agendamento de teste
-python scripts/create_test_appointment.py
-
-# Criar múltiplos agendamentos de teste
-python scripts/create_test_appointments.py
-
-# Criar admin de teste
-python scripts/create_admin_test.py
-```
-
-### Scripts de Verificação
-```bash
-# Verificar usuários administradores
-python scripts/check_admin_users.py
-
-# Verificar usuários do sistema
-python scripts/check_users.py
-
-# Verificar agendamentos
-python scripts/check_appointments.py
-```
-
-### Scripts de Segurança
-```bash
-# Definir senha do administrador
-python scripts/set_admin_password.py
-
-# Verificar segurança multi-salão
-python scripts/test_multi_salon_security.py
-```
-
-### Scripts de Manutenção
-```bash
-# Limpar agendamentos antigos sem presença
-python scripts/cleanup_old_no_shows.py
-
-# Atualizar agendamentos passados
-python scripts/update_past_appointments.py
-```
-
-### Como Executar Scripts
-
-```bash
-# Tornar scripts executáveis (Linux/Mac)
-chmod +x scripts/*.py
-
-# Executar script específico
-python scripts/nome_do_script.py
-
-# Ou usando o run.py principal
-python run.py
-```
-
-## 🧪 Testes
-
-### Executando Testes
-
-```bash
-# Todos os testes
-python scripts/run-tests.py all
-
-# Apenas testes unitários
-python scripts/run-tests.py unit
-
-# Testes com cobertura
-python scripts/run-tests.py all --coverage
+# Testes específicos
+pytest tests/test_appointment_service.py -v
 
 # Testes de integração
-python scripts/run-tests.py integration
-
-# Relatório de cobertura
-python scripts/run-tests.py coverage
+pytest -m integration
 ```
 
-### Estrutura de Testes
+## 📚 **Documentação da API**
 
-```
-tests/
-├── conftest.py           # Configuração e fixtures
-├── test_auth_service.py  # Testes do serviço de auth
-├── test_models.py        # Testes dos modelos
-└── test_api_*.py         # Testes dos endpoints
-```
-
-## 🚢 Deploy
-
-### Docker
-
-```bash
-# Build da imagem
-docker build -t aluvi .
-
-# Executar container
-docker run -p 8000:8000 -e DATABASE_URL="sqlite:///./aluvi.db" aluvi
-```
-
-### Docker Compose
-
-```yaml
-version: '3.8'
-services:
-  aluvi:
-    build: .
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://user:pass@db/aluvi
-    depends_on:
-      - db
-
-  db:
-    image: postgres:15
-    environment:
-      - POSTGRES_DB=aluvi
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=pass
-```
-
-### Produção com Gunicorn
-
-```bash
-# Instalar gunicorn
-pip install gunicorn
-
-# Executar com gunicorn
-gunicorn src.backend.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
-```
-
-## 📊 Monitoramento
-
-### Health Checks
-
-O sistema inclui endpoints de monitoramento para verificar a saúde da aplicação:
-
-```bash
-# Status geral do sistema
-curl http://localhost:8000/health
-
-# Status do banco de dados
-curl http://localhost:8000/health/database
-
-# Status dos recursos do sistema
-curl http://localhost:8000/health/system
-```
-
-### Métricas
-
-```bash
-# Métricas detalhadas (requer autenticação admin)
-curl -H "Authorization: Bearer <token>" http://localhost:8000/metrics
-```
-
-### Logs
-
-Os logs são estruturados e incluem:
-- Logs de aplicação (`logs/aluvi.log`)
-- Logs de erro (`logs/error.log`)
-- Logs de auditoria (ações importantes do sistema)
-
-### Monitoramento em Tempo Real
-
-- **Uptime**: Tempo de atividade do sistema
-- **Requisições**: Contador de requests por endpoint
-- **Erros**: Taxa de erro e tipos de erro
-- **Performance**: Tempos de resposta médios
-- **Recursos**: CPU, memória e disco
-
-## 🔒 Segurança
-
-### Autenticação e Autorização
-
-- **JWT Tokens**: Autenticação stateless com refresh tokens
-- **Blacklist de Tokens**: Invalidação de tokens após logout
-- **Roles Hierárquicos**: Admin > Owner > Client
-- **Isolamento Multi-tenant**: Dados segregados por salão
-
-### Recursos de Segurança
-
-- **Hash de Senhas**: bcrypt com salt automático
-- **CORS**: Configurado para domínios específicos
-- **Rate Limiting**: Proteção contra abuso (implementação futura)
-- **Auditoria**: Log completo de todas as ações
-- **Validação de Dados**: Pydantic para entrada/saída
-
-### Boas Práticas de Segurança
-
-1. **Senhas Fortes**: Mínimo 6 caracteres, força mudança no primeiro login
-2. **Tokens Expiráveis**: Access tokens curtos, refresh tokens longos
-3. **HTTPS**: Sempre use SSL em produção
-4. **Variáveis de Ambiente**: Nunca commite secrets
-5. **Atualizações**: Mantenha dependências atualizadas
-
-### Verificações de Segurança
-
-```bash
-# Verificar isolamento multi-salão
-python scripts/test_multi_salon_security.py
-
-# Verificar usuários administradores
-python scripts/check_admin_users.py
-```
-
-## 📚 Documentação da API
-
-### Autenticação
-
-```http
-POST /api/v1/auth/login
-Content-Type: application/json
-
-{
-  "email": "user@example.com",
-  "senha": "password"
-}
-```
+A documentação completa está disponível em:
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
 ### Endpoints Principais
 
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| POST | `/auth/login` | Login de usuário |
-| GET | `/auth/me` | Dados do usuário logado |
-| GET | `/appointments` | Lista agendamentos |
-| POST | `/appointments` | Criar agendamento |
-| GET | `/services` | Lista serviços |
-| GET | `/professionals` | Lista profissionais |
-| GET | `/reports/dashboard` | Estatísticas dashboard |
+#### Autenticação
+- `POST /auth/login` - Login de usuário
+- `POST /auth/register` - Registro de novo salão
 
-### Documentação Interativa
+#### Agendamentos
+- `GET /appointments/` - Listar agendamentos
+- `POST /appointments/` - Criar agendamento
+- `PUT /appointments/{id}/status` - Atualizar status
 
-Acesse http://localhost:8000/docs para a documentação interativa da API com Swagger UI.
+#### Clientes
+- `GET /clients/` - Listar clientes
+- `POST /clients/` - Criar cliente
+- `POST /clients/register` - Registro de cliente
 
-## 🤝 Contribuição
+#### Serviços
+- `GET /services/` - Listar serviços
+- `POST /services/` - Criar serviço
+
+## 🔧 **Configuração**
+
+### Variáveis de Ambiente
+
+```bash
+# Ambiente
+ENVIRONMENT=development|production
+
+# Banco de Dados
+DATABASE_URL=sqlite:///./aluvi.db
+# ou
+DATABASE_URL=postgresql://user:password@localhost/aluvi
+
+# Redis (Cache)
+REDIS_ENABLED=true|false
+REDIS_URL=redis://localhost:6379/0
+
+# Segurança
+SECRET_KEY=your-secret-key-here
+JWT_SECRET_KEY=your-jwt-secret
+
+# CORS
+ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
+```
+
+## 📊 **Monitoramento**
+
+### Prometheus Metrics
+- **Endpoint**: `/metrics`
+- **Métricas disponíveis**:
+  - `http_requests_total` - Total de requisições HTTP
+  - `http_request_duration_seconds` - Duração das requisições
+  - `db_query_duration_seconds` - Duração das queries
+  - `appointments_created_total` - Agendamentos criados
+  - `cache_hits_total` - Hits do cache
+
+### Health Checks
+- **Endpoint**: `/health`
+- Verifica conectividade com banco e Redis
+
+### Grafana Dashboards
+Acesse: http://localhost:3000 (admin/admin)
+
+## 🚀 **Deploy**
+
+### Desenvolvimento
+```bash
+docker-compose up -d
+```
+
+### Produção
+```bash
+# Build da imagem
+docker build -t aluvi-api .
+
+# Executar
+docker run -p 8000:8000 \
+  -e ENVIRONMENT=production \
+  -e DATABASE_URL=postgresql://... \
+  -e REDIS_URL=redis://... \
+  aluvi-api
+```
+
+## 🔒 **Segurança**
+
+- ✅ Autenticação JWT com refresh tokens
+- ✅ Controle de acesso baseado em papéis
+- ✅ Validações de entrada robustas
+- ✅ Logs de auditoria completos
+- ✅ CORS configurado adequadamente
+- ✅ Headers de segurança
+
+## 📈 **Performance**
+
+- ✅ **Eager Loading** - Eliminação de N+1 queries
+- ✅ **Cache Redis** - Dados frequentes em cache
+- ✅ **Índices otimizados** - Consultas rápidas
+- ✅ **Transações seguras** - Rollback automático
+- ✅ **Paginacão** - Controle de memória
+
+## 🧪 **Qualidade de Código**
+
+- ✅ **Testes unitários** - Cobertura > 80%
+- ✅ **Linting** - flake8, black, isort
+- ✅ **Type checking** - mypy
+- ✅ **Security scanning** - bandit, safety
+- ✅ **CI/CD** - GitHub Actions
+
+## 🤝 **Contribuição**
 
 1. Fork o projeto
 2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
@@ -599,23 +228,16 @@ Acesse http://localhost:8000/docs para a documentação interativa da API com Sw
 4. Push para a branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
 
-### Padrões de Código
+## 📝 **Licença**
 
-- **Backend**: Black + Flake8
-- **Frontend**: ESLint + Prettier
-- **Commits**: Conventional Commits
-- **Testes**: pytest com cobertura > 80%
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para detalhes.
 
-## 📄 Licença
+## 📞 **Suporte**
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
-
-## 🙏 Agradecimentos
-
-- FastAPI por ser um framework incrível
-- SQLAlchemy pela flexibilidade
-- Comunidade open source
+- **Email**: suporte@aluvi.com
+- **Docs**: https://docs.aluvi.com
+- **Issues**: [GitHub Issues](https://github.com/your-org/aluvi-api/issues)
 
 ---
 
-**Feito com ❤️ para salões de beleza em todo o Brasil**
+**Aluvi** - Transformando a gestão de salões de beleza! ✨

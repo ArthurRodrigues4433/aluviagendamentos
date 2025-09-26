@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_, or_
-from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
+from datetime import datetime
 from typing import Optional
 from ..database import get_db
 from .. import models, schemas
 from ..dependencies import verificar_token
 from ..models import Usuario
 from ..core.logging import get_logger
+from ..services import AppointmentService
 
 router = APIRouter()
 logger = get_logger("appointments")
@@ -25,15 +25,13 @@ def verificar_conflito_horario(db: Session, servico_id: int, data_hora: datetime
 
         logger.info(f"Verificando conflitos para profissional {profissional_id} em {data_hora}")
 
-        # DEBUG: Ver todos os agendamentos do profissional
-        print(f"DEBUG: Verificando conflitos para profissional {profissional_id} em {data_hora}")
+        # Buscar todos os agendamentos do profissional para análise
         all_appointments = db.query(models.Agendamento).filter(
             models.Agendamento.professional_id == profissional_id
         ).all()
-        print(f"DEBUG: Total de agendamentos para profissional {profissional_id}: {len(all_appointments)}")
-        logger.info(f"Total de agendamentos para profissional {profissional_id}: {len(all_appointments)}")
+        logger.debug(f"Total de agendamentos para profissional {profissional_id}: {len(all_appointments)}")
         for apt in all_appointments:
-            logger.info(f"  Agendamento ID={apt.id}, datetime={apt.appointment_datetime}, status={apt.status}, salon_id={apt.salon_id}")
+            logger.debug(f"Agendamento ID={apt.id}, datetime={apt.appointment_datetime}, status={apt.status}")
 
         # Buscar agendamentos existentes para o mesmo profissional na mesma data/hora
         # Considera apenas agendamentos ativos (não cancelados)
@@ -79,134 +77,16 @@ def verificar_conflito_horario(db: Session, servico_id: int, data_hora: datetime
         return None
 
 @router.get("/", response_model=list[schemas.AgendamentoSchema])
-def get_appointments(db: Session = Depends(get_db), usuario: Usuario = Depends(verificar_token)):
+def get_appointments(
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(verificar_token)
+):
     """Retorna lista de agendamentos filtrados por usuário logado"""
     try:
-        # Verificar se é cliente ou dono/admin
-        user_role = getattr(usuario, 'role', None)
-
-        if user_role == "cliente":
-            # Para clientes: filtrar apenas seus próprios agendamentos
-            print(f"[APPOINTMENTS] Cliente {usuario.id} buscando seus agendamentos")
-            appointments = db.query(models.Agendamento).filter(models.Agendamento.client_id == usuario.id).all()
-        else:
-            # Para donos/admins: filtrar por salão
-            user_salon_id = usuario.id if hasattr(usuario, 'is_admin') else getattr(usuario, 'salon_id', usuario.id)
-            print(f"[APPOINTMENTS] Dono/Admin buscando agendamentos do salão {user_salon_id}")
-            appointments = db.query(models.Agendamento).filter(models.Agendamento.salon_id == user_salon_id).all()
-
-        print(f"[APPOINTMENTS] Encontrados {len(appointments)} agendamentos válidos")
-
-        # Se não há agendamentos, retornar lista vazia
-        if not appointments:
-            print("[APPOINTMENTS] Nenhum agendamento encontrado")
-            return []
-
-        # Carregar dados relacionados restantes (serviço e profissional)
-        for appointment in appointments:
-            try:
-                print(f"[APPOINTMENTS] Carregando dados para agendamento {appointment.id}")
-
-                # Cliente já foi carregado pelo JOIN
-                print(f"[APPOINTMENTS] Cliente já carregado: {appointment.client is not None}")
-
-                # Carregar serviço se existir
-                if appointment.service_id:
-                    appointment.service = db.query(models.Servico).filter(models.Servico.id == appointment.service_id).first()
-                    print(f"[APPOINTMENTS] Serviço carregado: {appointment.service is not None}")
-
-                # Carregar profissional se existir
-                if appointment.professional_id:
-                    appointment.professional = db.query(models.Profissional).filter(models.Profissional.id == appointment.professional_id).first()
-                    print(f"[APPOINTMENTS] Profissional carregado: {appointment.professional is not None}")
-
-            except Exception as e:
-                # Log detalhado do erro
-                logger.error(f"[APPOINTMENTS] Erro ao carregar dados relacionados para agendamento {appointment.id}: {str(e)}")
-                import traceback
-                traceback.print_exc()
-
-                # Define valores padrão para evitar erros
-                if not hasattr(appointment, 'client') or appointment.client is None:
-                    appointment.client = None
-                if not hasattr(appointment, 'service') or appointment.service is None:
-                    appointment.service = None
-                if not hasattr(appointment, 'professional') or appointment.professional is None:
-                    appointment.professional = None
-
-        print(f"[APPOINTMENTS] Retornando {len(appointments)} agendamentos processados")
-
-        # Converter para dicionários para evitar problemas de serialização
-        result = []
-        for appointment in appointments:
-            try:
-                # Converter cliente para dict (sempre existe devido ao JOIN)
-                cliente_dict = None
-                if appointment.client:
-                    cliente_dict = {
-                        "id": appointment.client.id,
-                        "nome": appointment.client.nome,
-                        "email": appointment.client.email,
-                        "telefone": appointment.client.telefone,
-                        "pontos_fidelidade": appointment.client.pontos_fidelidade or 0,
-                        "salon_id": appointment.client.salon_id
-                    }
-
-                # Converter serviço para dict se existir
-                servico_dict = None
-                if appointment.service:
-                    servico_dict = {
-                        "id": appointment.service.id,
-                        "nome": appointment.service.nome,
-                        "descricao": appointment.service.descricao,
-                        "duracao_minutos": appointment.service.duracao_minutos,
-                        "preco": appointment.service.preco,
-                        "pontos_fidelidade": appointment.service.pontos_fidelidade,
-                        "salon_id": appointment.service.salon_id
-                    }
-
-                # Converter profissional para dict se existir
-                profissional_dict = None
-                if appointment.professional:
-                    profissional_dict = {
-                        "id": appointment.professional.id,
-                        "nome": appointment.professional.nome,
-                        "email": appointment.professional.email,
-                        "telefone": appointment.professional.telefone,
-                        "especialidade": appointment.professional.especialidade,
-                        "salon_id": appointment.professional.salon_id,
-                        "ativo": appointment.professional.ativo
-                    }
-
-                appointment_dict = {
-                    "id": appointment.id,
-                    "client_id": appointment.client_id,
-                    "service_id": appointment.service_id,
-                    "professional_id": appointment.professional_id,
-                    "salon_id": appointment.salon_id,
-                    "data_hora": appointment.data_hora,
-                    "status": appointment.status.value,
-                    "valor": float(appointment.valor), #type: ignore
-                    "cliente": cliente_dict,
-                    "servico": servico_dict,
-                    "profissional": profissional_dict
-                }
-                result.append(appointment_dict)
-
-            except Exception as e:
-                logger.error(f"[APPOINTMENTS] Erro ao converter agendamento {appointment.id} para dict: {str(e)}")
-                continue  # Pula este agendamento problemático
-
-        print(f"[APPOINTMENTS] Retornando {len(result)} agendamentos convertidos com sucesso")
-        return result
-
+        service = AppointmentService(db)
+        return service.get_appointments_for_user(usuario)
     except Exception as e:
-        # Log detalhado do erro geral
-        logger.error(f"[APPOINTMENTS] Erro crítico ao buscar agendamentos para usuário {usuario.id}: {str(e)}")
-        import traceback
-        traceback.print_exc()
-
-        # Retorna lista vazia em caso de erro para evitar 500 no frontend
+        logger.error(f"Erro ao buscar agendamentos para usuário {usuario.id}: {str(e)}", exc_info=True)
         return []
 
 @router.post("/", response_model=schemas.AgendamentoSchema)

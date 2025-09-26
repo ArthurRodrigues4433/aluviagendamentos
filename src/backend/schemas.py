@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator, Field
 from typing import Optional, List
 from datetime import datetime, date
 from .models.enums import AppointmentStatus
@@ -136,12 +136,12 @@ class ServicoSchema(BaseModel):
     salon_id: int
 
 class ServicoCreate(BaseModel):
-    nome: str
-    descricao: Optional[str] = None
-    duracao_minutos: int
-    preco: float
-    pontos_fidelidade: Optional[int] = 0
-    salon_id: int
+    nome: str = Field(min_length=1, max_length=255)
+    descricao: Optional[str] = Field(None, max_length=1000)
+    duracao_minutos: int = Field(gt=0, le=480)  # Maior que 0, máximo 8 horas
+    preco: float = Field(gt=0)
+    pontos_fidelidade: int = Field(ge=0, default=0)  # Não negativo
+    salon_id: int = Field(gt=0)
 
 class ServicoUpdate(BaseModel):
     nome: Optional[str] = None
@@ -167,12 +167,12 @@ class AgendamentoSchema(BaseModel):
     profissional: Optional[ProfissionalSchema] = None
 
 class AgendamentoCreate(BaseModel):
-    client_id: int
-    service_id: int
-    professional_id: Optional[int] = None
-    salon_id: int
+    client_id: int = Field(gt=0)
+    service_id: int = Field(gt=0)
+    professional_id: Optional[int] = Field(None, gt=0)
+    salon_id: int = Field(gt=0)
     data_hora: datetime
-    valor: float
+    valor: float = Field(gt=0)
 
     # Configuração para aceitar strings ISO e converter para datetime
     model_config = ConfigDict(coerce_numbers_to_str=True)

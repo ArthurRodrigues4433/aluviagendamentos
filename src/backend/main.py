@@ -27,9 +27,116 @@ logger = get_logger()
 
 # Cria instância principal da aplicação FastAPI com metadados
 app = FastAPI(
-    title="API do Sistema de Salão",           # Título da API (aparece na documentação)
-    description="API para gerenciamento de salão de beleza",  # Descrição da API
-    version="1.0.0"                           # Versão da API
+    title="Aluvi API - Sistema de Agendamentos para Salões",
+    description="""
+    ## Sistema de Agendamentos para Salões de Beleza
+
+    Esta API fornece funcionalidades completas para gerenciamento de salões, incluindo:
+
+    ### 👥 **Usuários e Autenticação**
+    - Cadastro e autenticação de donos de salão
+    - Sistema de administradores
+    - Controle de permissões por papel (role-based access)
+
+    ### 🏪 **Salões**
+    - Gerenciamento de informações do salão
+    - Configuração de horários de funcionamento
+    - Personalização de cards de apresentação
+
+    ### 👨‍💼 **Clientes**
+    - Cadastro de clientes (anônimos ou registrados)
+    - Programa de fidelidade com pontos
+    - Histórico de agendamentos
+
+    ### ✂️ **Serviços**
+    - Catálogo de serviços oferecidos
+    - Definição de preços e duração
+    - Controle de pontos de fidelidade por serviço
+
+    ### 👩‍💼 **Profissionais**
+    - Cadastro de equipe do salão
+    - Especialidades e disponibilidade
+    - Associação com serviços
+
+    ### 📅 **Agendamentos**
+    - Sistema completo de reservas
+    - Validação de conflitos de horário
+    - Controle de status e ciclo de vida
+    - Notificações e lembretes
+
+    ### 🔒 **Segurança**
+    - Autenticação JWT
+    - Controle de acesso baseado em papéis
+    - Logs de auditoria
+    - Validações de entrada robustas
+
+    ### 📊 **Relatórios**
+    - Dashboard com métricas
+    - Análises de performance
+    - Relatórios financeiros
+
+    ## Autenticação
+
+    Para acessar endpoints protegidos, inclua o token JWT no header:
+    ```
+    Authorization: Bearer <seu_token_jwt>
+    ```
+
+    ## Status Codes
+
+    - `200`: Sucesso
+    - `201`: Criado com sucesso
+    - `400`: Dados inválidos
+    - `401`: Não autorizado
+    - `403`: Acesso proibido
+    - `404`: Recurso não encontrado
+    - `409`: Conflito (ex: horário ocupado)
+    - `500`: Erro interno do servidor
+    """,
+    version="2.0.0",
+    contact={
+        "name": "Equipe Aluvi",
+        "email": "suporte@aluvi.com",
+    },
+    license_info={
+        "name": "MIT",
+    },
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_tags=[
+        {
+            "name": "autenticação",
+            "description": "Operações de login e gerenciamento de tokens"
+        },
+        {
+            "name": "salões",
+            "description": "Gerenciamento de salões e suas configurações"
+        },
+        {
+            "name": "clientes",
+            "description": "Gerenciamento de clientes e programa de fidelidade"
+        },
+        {
+            "name": "serviços",
+            "description": "Catálogo de serviços oferecidos"
+        },
+        {
+            "name": "profissionais",
+            "description": "Gerenciamento da equipe do salão"
+        },
+        {
+            "name": "agendamentos",
+            "description": "Sistema de reservas e agendamentos"
+        },
+        {
+            "name": "relatórios",
+            "description": "Dashboards e análises de performance"
+        },
+        {
+            "name": "monitoramento",
+            "description": "Health checks e métricas do sistema"
+        }
+    ]
 )
 
 # Handler global para capturar todas as exceções não tratadas
@@ -46,23 +153,58 @@ async def global_exception_handler(request: Request, exc: Exception):
     Returns:
         JSONResponse: Resposta padronizada com erro
     """
-    logger.error(f"Erro não tratado: {str(exc)}")
+    # Log detalhado para debugging interno
+    logger.error(
+        f"Erro não tratado na requisição {request.method} {request.url.path}",
+        extra={
+            "method": request.method,
+            "path": request.url.path,
+            "query_params": str(request.query_params),
+            "client_ip": request.client.host if request.client else None,
+            "user_agent": request.headers.get("user-agent"),
+        },
+        exc_info=True
+    )
+
+    # Resposta genérica para o cliente (não vaza informações sensíveis)
     return JSONResponse(
         status_code=500,
         content={
             "success": False,
-            "error": "Erro interno do servidor. Tente novamente."
+            "error": "Erro interno do servidor. Nossa equipe foi notificada."
         }
     )
 
 # Configuração do CORS (Cross-Origin Resource Sharing)
 # Permite que o frontend (executando em porta diferente) acesse a API
+# Configuração segura baseada em ambiente
+import os
+allowed_origins = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000"
+).split(",")
+
+# Em produção, adicionar apenas domínios específicos
+if os.getenv("ENVIRONMENT") == "production":
+    # Adicionar domínios de produção autorizados
+    allowed_origins.extend([
+        "https://seusite.com",
+        "https://www.seusite.com"
+    ])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:8000", "http://127.0.0.1:8000"],
+    allow_origins=allowed_origins,
     allow_credentials=True,  # Permite envio de cookies/credenciais (tokens JWT)
-    allow_methods=["*"],     # Permite todos os métodos HTTP (GET, POST, PUT, DELETE)
-    allow_headers=["*"],     # Permite todos os headers HTTP
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],  # Métodos específicos
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Origin",
+        "X-Requested-With"
+    ],  # Headers específicos necessários
+    max_age=86400,  # Cache de preflight por 24 horas
 )
 
 # Monta diretório de arquivos estáticos do frontend

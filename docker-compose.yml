@@ -1,0 +1,207 @@
+version: '3.8'
+
+services:
+  # ================================
+  # BANCO DE DADOS
+  # ================================
+  db:
+    image: postgres:15-alpine
+    container_name: aluvi_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aluvi
+      POSTGRES_USER: aluvi_user
+      POSTGRES_PASSWORD: aluvi_password_2024
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - aluvi_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aluvi_user -d aluvi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ================================
+  # REDIS PARA CACHE
+  # ================================
+  redis:
+    image: redis:7-alpine
+    container_name: aluvi_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass aluvi_cache_2024
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - aluvi_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ================================
+  # BACKEND API
+  # ================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: aluvi_backend
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql://aluvi_user:aluvi_password_2024@db:5432/aluvi
+      REDIS_URL: redis://:aluvi_cache_2024@redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:8080,http://frontend:80}
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - aluvi_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: ["python", "run.py"]
+
+  # ================================
+  # NGINX - SERVIDOR WEB
+  # ================================
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: aluvi_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./src/frontend:/var/www/html:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - backend
+    networks:
+      - aluvi_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ================================
+  # MONITORAMENTO - PROMETHEUS (Comentado - descomente se quiser usar)
+  # ================================
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   container_name: aluvi_prometheus
+  #   restart: unless-stopped
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+  #     - prometheus_data:/prometheus
+  #   command:
+  #     - '--config.file=/etc/prometheus/prometheus.yml'
+  #     - '--storage.tsdb.path=/prometheus'
+  #     - '--web.console.libraries=/etc/prometheus/console_libraries'
+  #     - '--web.console.templates=/etc/prometheus/consoles'
+  #     - '--storage.tsdb.retention.time=200h'
+  #     - '--web.enable-lifecycle'
+  #   networks:
+  #     - aluvi_network
+
+  # ================================
+  # MONITORAMENTO - GRAFANA (Comentado - descomente se quiser usar)
+  # ================================
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   container_name: aluvi_grafana
+  #   restart: unless-stopped
+  #   environment:
+  #     GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+  #     GF_USERS_ALLOW_SIGN_UP: "false"
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - grafana_data:/var/lib/grafana
+  #     - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+  #     - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+  #   depends_on:
+  #     - prometheus
+  #   networks:
+  #     - aluvi_network
+
+  # ================================
+  # LOGS - LOKI (Comentado - descomente se quiser usar)
+  # ================================
+  # loki:
+  #   image: grafana/loki:latest
+  #   container_name: aluvi_loki
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3100:3100"
+  #   volumes:
+  #     - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
+  #     - loki_data:/loki
+  #   command: -config.file=/etc/loki/local-config.yaml
+  #   networks:
+  #     - aluvi_network
+
+  # ================================
+  # LOGS - PROMTAIL (Comentado - descomente se quiser usar)
+  # ================================
+  # promtail:
+  #   image: grafana/promtail:latest
+  #   container_name: aluvi_promtail
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+  #     - ./logs:/var/log/aluvi:ro
+  #   command: -config.file=/etc/promtail/config.yml
+  #   depends_on:
+  #     - loki
+  #   networks:
+  #     - aluvi_network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  loki_data:
+    driver: local
+  nginx_logs:
+    driver: local
+
+networks:
+  aluvi_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

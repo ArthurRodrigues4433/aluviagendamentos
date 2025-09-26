@@ -3,14 +3,14 @@ Definições de modelo de agendamento para o backend Aluvi.
 Gerencia agendamentos de serviços e seu ciclo de vida.
 """
 
-from sqlalchemy import Column, Integer, ForeignKey, DateTime, Float, Enum
+from sqlalchemy import Column, Integer, ForeignKey, DateTime, Float, Enum, CheckConstraint
 from sqlalchemy.orm import relationship
 
-from .base import BaseModel, TimestampMixin
+from .base import BaseModel, TimestampMixin, SoftDeleteMixin
 from .enums import AppointmentStatus
 
 
-class Appointment(BaseModel, TimestampMixin):
+class Appointment(BaseModel, TimestampMixin, SoftDeleteMixin):
     """
     Modelo de agendamento representando reservas de serviços.
 
@@ -91,6 +91,11 @@ class Appointment(BaseModel, TimestampMixin):
     def can_be_cancelled(self) -> bool:
         """Verificar se o agendamento ainda pode ser cancelado."""
         return self.status == AppointmentStatus.SCHEDULED  # type: ignore
+
+    # Constraints
+    __table_args__ = (
+        CheckConstraint('price > 0', name='chk_price_positivo'),
+    )
 
     def __repr__(self) -> str:
         return f"<Appointment(id={self.id}, client_id={self.client_id}, service_id={self.service_id}, status={self.status})>"

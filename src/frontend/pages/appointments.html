@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://public-frontend-cos.metadl.com/mgx/img/favicon.png" type="image/png">
+    <title>Meus Agendamentos - SaaS Agendamento</title>
+    <link rel="stylesheet" href="/frontend/assets/styles.css">
+    <link rel="manifest" href="/manifest.json">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="dashboard-cliente.html" class="logo">Aluvi Cliente</a>
+                <ul class="nav-links">
+                    <li><a href="dashboard-cliente.html">Dashboard</a></li>
+                    <li><a href="new-appointment.html">Novo Agendamento</a></li>
+                    <li><a href="profile.html">Perfil</a></li>
+                    <li><a href="#" id="logoutBtn">Sair</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <div class="d-flex justify-between align-center mb-2">
+            <h1>Meus Agendamentos</h1>
+            <a href="new-appointment.html" class="btn btn-primary">
+                <span class="mobile-hide">Novo Agendamento</span>
+                <span class="mobile-show">+ Novo</span>
+            </a>
+        </div>
+
+        <!-- Filtros -->
+        <div class="card mb-3">
+            <div class="form-group">
+                <label class="form-label">Filtrar por status</label>
+                <div class="d-flex gap-1 flex-wrap">
+                    <button class="btn btn-outline filter-btn active" data-filter="all">Todos</button>
+                    <button class="btn btn-outline filter-btn" data-filter="agendado">Agendados</button>
+                    <button class="btn btn-outline filter-btn" data-filter="confirmado">Confirmados</button>
+                    <button class="btn btn-outline filter-btn" data-filter="concluido">Concluídos</button>
+                    <button class="btn btn-outline filter-btn" data-filter="cancelado">Cancelados</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Agendamentos -->
+        <div id="appointmentsList">
+            <div class="loading">Carregando agendamentos...</div>
+        </div>
+
+        <!-- Estatísticas Rápidas -->
+        <div class="grid grid-4 mt-3">
+            <div class="stat-card">
+                <div class="stat-number" id="totalAppointments">-</div>
+                <div class="stat-label">Total</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="upcomingAppointments">-</div>
+                <div class="stat-label">Próximos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="completedAppointments">-</div>
+                <div class="stat-label">Concluídos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="loyaltyPoints">-</div>
+                <div class="stat-label">Pontos Fidelidade</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal de Detalhes do Agendamento -->
+    <div id="appointmentModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Detalhes do Agendamento</h3>
+                <button class="modal-close" id="closeAppointmentModal">&times;</button>
+            </div>
+            <div id="appointmentModalBody">
+                <!-- Conteúdo será carregado dinamicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/frontend/config.js"></script>
+    <script src="/frontend/app.js"></script>
+    <script>
+        let appointments = [];
+        let currentFilter = 'all';
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('[APPOINTMENTS] Inicializando página de agendamentos...');
+
+            // Verificar autenticação
+            if (!AuthGuard.requireAuth(['cliente'])) return;
+
+            setupEventListeners();
+            loadAppointments();
+            loadClientStats();
+        });
+
+        // Configurar event listeners
+        function setupEventListeners() {
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', () => api.logout());
+
+            // Filtros
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => filterAppointments(btn.dataset.filter));
+            });
+
+            // Modal
+            document.getElementById('closeAppointmentModal').addEventListener('click', closeAppointmentModal);
+        }
+
+        // Carregar agendamentos
+        async function loadAppointments() {
+            try {
+                console.log('[APPOINTMENTS] Carregando agendamentos...');
+                UI.showLoading(document.getElementById('appointmentsList'));
+
+                const response = await api.getAppointments();
+                console.log('[APPOINTMENTS] Resposta da API:', response);
+
+                if (response && Array.isArray(response)) {
+                    appointments = response;
+                    displayAppointments(appointments);
+                } else {
+                    console.warn('[APPOINTMENTS] Resposta inválida da API');
+                    displayAppointments([]);
+                }
+
+            } catch (error) {
+                console.error('[APPOINTMENTS] Erro ao carregar agendamentos:', error);
+                document.getElementById('appointmentsList').innerHTML =
+                    '<div class="alert alert-error">Erro ao carregar agendamentos. Tente novamente.</div>';
+            }
+        }
+
+        // Carregar estatísticas do cliente
+        async function loadClientStats() {
+            try {
+                const response = await api.getClientProfile();
+                if (response) {
+                    document.getElementById('loyaltyPoints').textContent = response.pontos_fidelidade || 0;
+                }
+            } catch (error) {
+                console.error('[APPOINTMENTS] Erro ao carregar estatísticas:', error);
+            }
+        }
+
+        // Exibir agendamentos
+        function displayAppointments(appointmentsList) {
+            const container = document.getElementById('appointmentsList');
+
+            if (!appointmentsList || appointmentsList.length === 0) {
+                container.innerHTML = `
+                    <div class="card">
+                        <div class="text-center py-4">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">📅</div>
+                            <h3>Nenhum agendamento encontrado</h3>
+                            <p>Você ainda não possui agendamentos ${currentFilter !== 'all' ? `com status "${currentFilter}"` : ''}.</p>
+                            <a href="new-appointment.html" class="btn btn-primary mt-2">Fazer Primeiro Agendamento</a>
+                        </div>
+                    </div>
+                `;
+                updateStats(0, 0, 0);
+                return;
+            }
+
+            // Ordenar por data (mais recentes primeiro)
+            appointmentsList.sort((a, b) => new Date(b.data_hora) - new Date(a.data_hora));
+
+            let html = '<div class="appointments-grid">';
+
+            appointmentsList.forEach(appointment => {
+                const appointmentDate = new Date(appointment.data_hora);
+                const now = new Date();
+                const isPast = appointmentDate < now;
+                const isToday = appointmentDate.toDateString() === now.toDateString();
+
+                const statusClass = getStatusClass(appointment.status);
+                const statusText = getStatusText(appointment.status);
+
+                html += `
+                    <div class="appointment-card ${isPast ? 'past' : ''} ${isToday ? 'today' : ''}" onclick="showAppointmentDetails(${appointment.id})">
+                        <div class="appointment-header">
+                            <div class="appointment-date">
+                                <div class="date-day">${appointmentDate.getDate()}</div>
+                                <div class="date-month">${appointmentDate.toLocaleDateString('pt-BR', { month: 'short' })}</div>
+                            </div>
+                            <div class="appointment-info">
+                                <h3>${appointment.servico?.nome || 'Serviço'}</h3>
+                                <p class="appointment-professional">
+                                    ${appointment.profissional ? `com ${appointment.profissional.nome}` : 'Profissional não definido'}
+                                </p>
+                                <p class="appointment-time">
+                                    ${appointmentDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                    ${isToday ? '<span class="badge badge-info">Hoje</span>' : ''}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="appointment-footer">
+                            <div class="appointment-status">
+                                <span class="badge ${statusClass}">${statusText}</span>
+                            </div>
+                            <div class="appointment-price">
+                                ${Formatter.currency(appointment.valor)}
+                            </div>
+                        </div>
+                        ${appointment.status === 'agendado' || appointment.status === 'confirmado' ?
+                            `<div class="appointment-actions">
+                                <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); cancelAppointment(${appointment.id})">
+                                    Cancelar
+                                </button>
+                            </div>` : ''
+                        }
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+
+            // Atualizar estatísticas
+            const upcoming = appointmentsList.filter(a => new Date(a.data_hora) > now && ['agendado', 'confirmado'].includes(a.status)).length;
+            const completed = appointmentsList.filter(a => a.status === 'concluido').length;
+            updateStats(appointmentsList.length, upcoming, completed);
+        }
+
+        // Filtrar agendamentos
+        function filterAppointments(filter) {
+            currentFilter = filter;
+
+            // Atualizar botões ativos
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.filter === filter) {
+                    btn.classList.add('active');
+                }
+            });
+
+            let filteredAppointments = appointments;
+
+            if (filter !== 'all') {
+                filteredAppointments = appointments.filter(apt => apt.status === filter);
+            }
+
+            displayAppointments(filteredAppointments);
+        }
+
+        // Atualizar estatísticas
+        function updateStats(total, upcoming, completed) {
+            document.getElementById('totalAppointments').textContent = total;
+            document.getElementById('upcomingAppointments').textContent = upcoming;
+            document.getElementById('completedAppointments').textContent = completed;
+        }
+
+        // Mostrar detalhes do agendamento
+        async function showAppointmentDetails(appointmentId) {
+            try {
+                const appointment = appointments.find(a => a.id === appointmentId);
+                if (!appointment) return;
+
+                const modal = document.getElementById('appointmentModal');
+                const modalBody = document.getElementById('appointmentModalBody');
+
+                const appointmentDate = new Date(appointment.data_hora);
+                const statusClass = getStatusClass(appointment.status);
+                const statusText = getStatusText(appointment.status);
+
+                modalBody.innerHTML = `
+                    <div class="appointment-details">
+                        <div class="grid grid-2">
+                            <div>
+                                <h4>Informações do Serviço</h4>
+                                <p><strong>Serviço:</strong> ${appointment.servico?.nome || 'Não informado'}</p>
+                                <p><strong>Profissional:</strong> ${appointment.profissional?.nome || 'Não informado'}</p>
+                                <p><strong>Data e Hora:</strong> ${appointmentDate.toLocaleString('pt-BR')}</p>
+                                <p><strong>Duração:</strong> ${appointment.servico?.duracao_minutos ? appointment.servico.duracao_minutos + ' minutos' : 'Não informado'}</p>
+                            </div>
+                            <div>
+                                <h4>Status e Pagamento</h4>
+                                <p><strong>Status:</strong> <span class="badge ${statusClass}">${statusText}</span></p>
+                                <p><strong>Valor:</strong> ${Formatter.currency(appointment.valor)}</p>
+                                <p><strong>Pontos Ganhos:</strong> ${appointment.servico?.pontos_fidelidade || 0}</p>
+                                <p><strong>Salão:</strong> ${appointment.salon?.nome || 'Não informado'}</p>
+                            </div>
+                        </div>
+
+                        ${appointment.status === 'agendado' || appointment.status === 'confirmado' ?
+                            `<div class="mt-3">
+                                <button class="btn btn-danger" onclick="cancelAppointment(${appointment.id})">
+                                    Cancelar Agendamento
+                                </button>
+                            </div>` : ''
+                        }
+                    </div>
+                `;
+
+                modal.classList.add('show');
+
+            } catch (error) {
+                console.error('[APPOINTMENTS] Erro ao mostrar detalhes:', error);
+                UI.showError('Erro ao carregar detalhes do agendamento');
+            }
+        }
+
+        // Fechar modal
+        function closeAppointmentModal() {
+            document.getElementById('appointmentModal').classList.remove('show');
+        }
+
+        // Cancelar agendamento
+        async function cancelAppointment(appointmentId) {
+            if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
+
+            try {
+                await api.updateAppointmentStatus(appointmentId, 'cancelado');
+                UI.showSuccess('Agendamento cancelado com sucesso!');
+                await loadAppointments(); // Recarregar lista
+                closeAppointmentModal();
+            } catch (error) {
+                console.error('[APPOINTMENTS] Erro ao cancelar agendamento:', error);
+                UI.showError('Erro ao cancelar agendamento');
+            }
+        }
+
+        // Utilitários
+        function getStatusClass(status) {
+            const classes = {
+                'agendado': 'badge-warning',
+                'confirmado': 'badge-success',
+                'concluido': 'badge-success',
+                'cancelado': 'badge-danger',
+                'nao_compareceu': 'badge-danger'
+            };
+            return classes[status] || 'badge-secondary';
+        }
+
+        function getStatusText(status) {
+            const texts = {
+                'agendado': 'Agendado',
+                'confirmado': 'Confirmado',
+                'concluido': 'Concluído',
+                'cancelado': 'Cancelado',
+                'nao_compareceu': 'Não Compareceu'
+            };
+            return texts[status] || status;
+        }
+
+        // Funções globais
+        window.showAppointmentDetails = showAppointmentDetails;
+        window.cancelAppointment = cancelAppointment;
+    </script>
+
+    <style>
+        .appointments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1rem;
+        }
+
+        .appointment-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .appointment-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .appointment-card.past {
+            opacity: 0.7;
+        }
+
+        .appointment-card.today {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+        }
+
+        .appointment-header {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .appointment-date {
+            text-align: center;
+            min-width: 60px;
+        }
+
+        .date-day {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .date-month {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        .appointment-info h3 {
+            margin: 0 0 0.5rem 0;
+            color: var(--text-primary);
+        }
+
+        .appointment-professional,
+        .appointment-time {
+            margin: 0.25rem 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .appointment-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .appointment-actions {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .appointment-details {
+            padding: 1rem 0;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .appointments-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .appointment-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .appointment-date {
+                margin-bottom: 1rem;
+            }
+
+            .appointment-footer {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: stretch;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-hide {
+                display: none;
+            }
+
+            .mobile-show {
+                display: inline;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .appointment-card {
+                padding: 1rem;
+            }
+
+            .stat-card {
+                padding: 1rem;
+            }
+        }
+    </style>
+</body>
+
+</html>

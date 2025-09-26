@@ -3,13 +3,13 @@ Definições de modelo de serviço para o backend Aluvi.
 Gerencia serviços do salão e suas configurações.
 """
 
-from sqlalchemy import Column, String, Integer, Float, ForeignKey
+from sqlalchemy import Column, String, Integer, Float, ForeignKey, CheckConstraint
 from sqlalchemy.orm import relationship
 
-from .base import BaseModel, TimestampMixin
+from .base import BaseModel, TimestampMixin, SoftDeleteMixin
 
 
-class Service(BaseModel, TimestampMixin):
+class Service(BaseModel, TimestampMixin, SoftDeleteMixin):
     """
     Modelo de serviço representando serviços do salão.
 
@@ -32,6 +32,13 @@ class Service(BaseModel, TimestampMixin):
     # Relationships
     appointments = relationship("Appointment", primaryjoin="Service.id == Appointment.service_id", back_populates="service")
     professionals = relationship("ServiceProfessional", back_populates="service")
+
+    # Constraints
+    __table_args__ = (
+        CheckConstraint('preco > 0', name='chk_preco_positivo'),
+        CheckConstraint('duracao_minutos > 0', name='chk_duracao_positiva'),
+        CheckConstraint('pontos_fidelidade >= 0', name='chk_pontos_nao_negativos'),
+    )
 
     @property
     def display_price(self) -> str:
